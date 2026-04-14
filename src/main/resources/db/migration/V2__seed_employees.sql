@@ -1,0 +1,10 @@
+INSERT INTO employee (name, role) VALUES ('Paula',    'F');
+INSERT INTO employee (name, role) VALUES ('Nidia',    'F');
+INSERT INTO employee (name, role) VALUES ('Jéssica',  'F');
+INSERT INTO employee (name, role) VALUES ('Andreia',  'F');
+INSERT INTO employee (name, role) VALUES ('Cristina', 'F');
+INSERT INTO employee (name, role) VALUES ('Sara',     'F');
+INSERT INTO employee (name, role) VALUES ('Natty',    'T');
+INSERT INTO employee (name, role) VALUES ('Carolina', 'T');
+INSERT INTO employee (name, role) VALUES ('Crisanta', 'T');
+INSERT INTO employee (name, role) VALUES ('Paulina',  'T');
