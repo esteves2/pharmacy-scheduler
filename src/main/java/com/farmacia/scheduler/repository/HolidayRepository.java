@@ -10,9 +10,9 @@ import java.util.List;
 
 public interface HolidayRepository extends JpaRepository<@NonNull PublicHoliday,@NonNull Long> {
 
-    @Query("SELECT holiday FROM PublicHoliday holiday WHERE holiday.date >= :start AND holiday.date <= :end ORDER BY holiday.date")
-    List<PublicHoliday> findByYear(@Param("start") LocalDate start, @Param("end") LocalDate end);
-
+    //TODO: used by HolidayController.listByYear (not yet implemented)
     @Query("SELECT holiday FROM PublicHoliday holiday WHERE holiday.date >= :from AND holiday.date <= :to ORDER BY holiday.date")
     List<PublicHoliday> findBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    boolean existsByDateBetween(LocalDate start, LocalDate end);
 }
