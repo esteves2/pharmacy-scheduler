@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw compile *)",
+      "Bash(./mvnw exec:java -Dexec.mainClass=\"com.farmacia.scheduler.engine.EngineSmokeTest\" -Dexec.classpathScope=\"test\")",
+      "Bash(mvn compile *)",
+      "Bash(./mvnw exec:java -Dexec.mainClass=\"com.farmacia.scheduler.engine.EngineSmokeTest\" -Dexec.classpathScope=test -q)",
+      "Bash(./mvnw test-compile *)",
+      "Bash(./mvnw exec:java -Dexec.mainClass=\"com.farmacia.scheduler.engine.EngineSmokeTest\" -Dexec.classpathScope=test)"
+    ]
+  }
+}

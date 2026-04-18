@@ -15,7 +15,7 @@ public class WeekAccumulator {
         this.priorWeeksHoursByEmployee = new HashMap<>();
     }
 
-    public void seedRecentHours(long employeeId, double hours) {
+    public void seedPriorWeeksHours(long employeeId, double hours) {
         priorWeeksHoursByEmployee.put(employeeId, hours);
     }
 
@@ -31,7 +31,7 @@ public class WeekAccumulator {
         return hoursByEmployee.getOrDefault(employeeId, 0.0);
     }
 
-    public double getRecentHours(long employeeId) {
+    public double getPriorWeeksHours(long employeeId) {
         return priorWeeksHoursByEmployee.getOrDefault(employeeId, 0.0);
     }
 
