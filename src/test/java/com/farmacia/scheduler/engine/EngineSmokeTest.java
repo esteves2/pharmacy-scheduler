@@ -88,7 +88,7 @@ public class EngineSmokeTest {
             List<EmployeeAbsence> absences = List.of(absenceFor(ID_SARA,
                     LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), AbsenceType.MATERNITY));
             WeekResult result = engine.generate(isoYear, isoWeek, monday, employees, absences,
-                    Set.of(LocalDate.of(2026, 12, 26)), List.of());
+                    Set.of(LocalDate.of(2026, 12, 25), LocalDate.of(2026, 12, 26)), List.of());
             printResult(result, employees, monday);
         }
 
