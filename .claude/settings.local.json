@@ -6,7 +6,10 @@
       "Bash(mvn compile *)",
       "Bash(./mvnw exec:java -Dexec.mainClass=\"com.farmacia.scheduler.engine.EngineSmokeTest\" -Dexec.classpathScope=test -q)",
       "Bash(./mvnw test-compile *)",
-      "Bash(./mvnw exec:java -Dexec.mainClass=\"com.farmacia.scheduler.engine.EngineSmokeTest\" -Dexec.classpathScope=test)"
+      "Bash(./mvnw exec:java -Dexec.mainClass=\"com.farmacia.scheduler.engine.EngineSmokeTest\" -Dexec.classpathScope=test)",
+      "Bash(java -e \"import java.time.*; System.out.println\\(LocalDate.of\\(2026,12,26\\).getDayOfWeek\\(\\)\\);\")",
+      "Bash(python3 -c \"import datetime; print\\(datetime.date\\(2026,12,26\\).strftime\\('%A'\\)\\)\")",
+      "Bash(powershell *)"
     ]
   }
 }

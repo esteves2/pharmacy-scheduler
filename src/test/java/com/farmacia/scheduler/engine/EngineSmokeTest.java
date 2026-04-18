@@ -73,6 +73,46 @@ public class EngineSmokeTest {
             WeekResult result = engine.generate(2026, 24, monday, employees, absences, Set.of(), List.of());
             printResult(result, employees, monday);
         }
+
+        System.out.println();
+
+        // SCENARIO D — Saturday is itself a holiday: Dec 26, 2026 (Santo Estêvão)
+        System.out.println("=".repeat(72));
+        System.out.println("SCENARIO D — Saturday is a holiday (2026-12-26, Santo Estêvão). Monday 2026-12-21");
+        System.out.println("=".repeat(72));
+        {
+            LocalDate monday = LocalDate.of(2026, 12, 21);
+            int isoYear = monday.get(IsoFields.WEEK_BASED_YEAR);
+            int isoWeek = monday.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
+            List<Employee> employees = buildActiveEmployees();
+            List<EmployeeAbsence> absences = List.of(absenceFor(ID_SARA,
+                    LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), AbsenceType.MATERNITY));
+            WeekResult result = engine.generate(isoYear, isoWeek, monday, employees, absences,
+                    Set.of(LocalDate.of(2026, 12, 26)), List.of());
+            printResult(result, employees, monday);
+        }
+
+        System.out.println();
+
+        // SCENARIO E — four workers on FERIAS simultaneously (F-shortage stress test)
+        // Absent Mon-Fri: Andreia (F), Cristina (F), Nidia (F), Paulina (T)
+        // Available on weekdays: Paula (F), Jéssica (F), Natty (T), Carolina (T), Crisanta (T)
+        System.out.println("=".repeat(72));
+        System.out.println("SCENARIO E — four workers on FERIAS Mon-Fri (Andreia+Cristina+Nidia+Paulina). ISO 2026-W24");
+        System.out.println("=".repeat(72));
+        {
+            LocalDate monday = LocalDate.of(2026, 6, 8);
+            List<Employee> employees = buildActiveEmployees();
+            List<EmployeeAbsence> absences = List.of(
+                    absenceFor(ID_SARA,     LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), AbsenceType.MATERNITY),
+                    absenceFor(ID_ANDREIA,  monday, monday.plusDays(4), AbsenceType.FERIAS),
+                    absenceFor(ID_CRISTINA, monday, monday.plusDays(4), AbsenceType.FERIAS),
+                    absenceFor(ID_NIDIA,    monday, monday.plusDays(4), AbsenceType.FERIAS),
+                    absenceFor(ID_PAULINA,  monday, monday.plusDays(4), AbsenceType.FERIAS)
+            );
+            WeekResult result = engine.generate(2026, 24, monday, employees, absences, Set.of(), List.of());
+            printResult(result, employees, monday);
+        }
     }
 
     // ---- builders -------------------------------------------------------
@@ -139,7 +179,7 @@ public class EngineSmokeTest {
                 String breakStr = "";
                 if (slot.getBreakStart() != null) {
                     breakStr = String.format(" [%s-%s]",
-                            slot.getBreakStart().toString(),
+                            slot.getBreakStart(),
                             slot.getBreakEnd().toString());
                 }
                 double hours = slot.hoursWorked();
