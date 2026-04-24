@@ -35,7 +35,7 @@ public class EngineSmokeTest {
             List<Employee> employees = buildActiveEmployees();
             List<EmployeeAbsence> absences = List.of(absenceFor(ID_SARA,
                     LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), AbsenceType.MATERNITY));
-            WeekResult result = engine.generate(2026, 24, monday, employees, absences, Set.of(), List.of());
+            WeekResult result = engine.generate(2026, 24, monday, employees, absences, Set.of(), List.of(), Map.of());
             printResult(result, employees, monday);
         }
 
@@ -52,7 +52,7 @@ public class EngineSmokeTest {
             List<EmployeeAbsence> absences = List.of(absenceFor(ID_SARA,
                     LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), AbsenceType.MATERNITY));
             WeekResult result = engine.generate(2026, isoWeek, monday, employees, absences,
-                    Set.of(LocalDate.of(2026, 4, 2)), List.of());
+                    Set.of(LocalDate.of(2026, 4, 2)), List.of(), Map.of());
             printResult(result, employees, monday);
         }
 
@@ -70,7 +70,7 @@ public class EngineSmokeTest {
                     absenceFor(ID_ANDREIA,  monday, monday.plusDays(4), AbsenceType.FERIAS),  // Mon-Fri
                     absenceFor(ID_CRISANTA, monday, monday.plusDays(2), AbsenceType.FERIAS)   // Mon-Wed
             );
-            WeekResult result = engine.generate(2026, 24, monday, employees, absences, Set.of(), List.of());
+            WeekResult result = engine.generate(2026, 24, monday, employees, absences, Set.of(), List.of(), Map.of());
             printResult(result, employees, monday);
         }
 
@@ -88,7 +88,7 @@ public class EngineSmokeTest {
             List<EmployeeAbsence> absences = List.of(absenceFor(ID_SARA,
                     LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31), AbsenceType.MATERNITY));
             WeekResult result = engine.generate(isoYear, isoWeek, monday, employees, absences,
-                    Set.of(LocalDate.of(2026, 12, 25), LocalDate.of(2026, 12, 26)), List.of());
+                    Set.of(LocalDate.of(2026, 12, 25), LocalDate.of(2026, 12, 26)), List.of(), Map.of());
             printResult(result, employees, monday);
         }
 
@@ -110,7 +110,7 @@ public class EngineSmokeTest {
                     absenceFor(ID_NIDIA,    monday, monday.plusDays(4), AbsenceType.FERIAS),
                     absenceFor(ID_PAULINA,  monday, monday.plusDays(4), AbsenceType.FERIAS)
             );
-            WeekResult result = engine.generate(2026, 24, monday, employees, absences, Set.of(), List.of());
+            WeekResult result = engine.generate(2026, 24, monday, employees, absences, Set.of(), List.of(), Map.of());
             printResult(result, employees, monday);
         }
     }
@@ -136,7 +136,6 @@ public class EngineSmokeTest {
         e.setId(id);
         e.setName(name);
         e.setRole(role);
-        e.setLastWeekendWorked(null);
         return e;
     }
 

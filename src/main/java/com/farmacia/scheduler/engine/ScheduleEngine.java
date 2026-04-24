@@ -5,11 +5,14 @@ import com.farmacia.scheduler.model.Employee;
 import com.farmacia.scheduler.model.EmployeeAbsence;
 import com.farmacia.scheduler.model.ShiftAssignment;
 
+import org.springframework.stereotype.Component;
+
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Component
 public class ScheduleEngine {
 
     private final WeekendAssigner weekendAssigner = new WeekendAssigner();
@@ -36,7 +39,8 @@ public class ScheduleEngine {
             List<Employee> employees,
             List<EmployeeAbsence> absences,
             Set<LocalDate> holidays,
-            List<ShiftAssignment> priorAssignments) {
+            List<ShiftAssignment> priorAssignments,
+            Map<Long, LocalDate> effectiveLastWeekendWorked) {
 
         WeekAccumulator accumulator = new WeekAccumulator();
         seedPriorWeeks(accumulator, priorAssignments);
@@ -51,14 +55,25 @@ public class ScheduleEngine {
         Set<Long> absentSat = absentEmployeesOn(absences, saturday);
         Set<Long> absentSun = absentEmployeesOn(absences, sunday);
         List<DayPlan> weekendDays = weekendAssigner.assignWeekend(
-                saturday, sunday, employees, holidays, absentSat, absentSun, accumulator, messages);
+                saturday, sunday, employees, holidays, absentSat, absentSun, accumulator, messages,
+                effectiveLastWeekendWorked);
+
+        // Merge Phase 1a weekend workers into the rotation map for Phase 1b sort.
+        // Employees who worked this weekend's Saturday take precedence over prior-history dates.
+        Map<Long, LocalDate> phase1bRotation = new HashMap<>(effectiveLastWeekendWorked);
+        weekendDays.stream()
+                .filter(d -> d.getDate().equals(saturday))
+                .findFirst()
+                .ifPresent(satPlan -> satPlan.getAssignments()
+                        .forEach(slot -> phase1bRotation.put(slot.getEmployeeId(), saturday)));
 
         // Phase 1b: Mid-week holidays (Mon-Fri only)
         Map<LocalDate, DayPlan> holidayPlans = new HashMap<>();
         for (LocalDate date = monday; !date.isAfter(monday.plusDays(4)); date = date.plusDays(1)) {
             if (holidays.contains(date)) {
                 Set<Long> absent = absentEmployeesOn(absences, date);
-                DayPlan plan = weekendAssigner.assignHoliday(date, employees, absent, accumulator, messages);
+                DayPlan plan = weekendAssigner.assignHoliday(
+                        date, employees, absent, accumulator, messages, phase1bRotation);
                 holidayPlans.put(date, plan);
             }
         }

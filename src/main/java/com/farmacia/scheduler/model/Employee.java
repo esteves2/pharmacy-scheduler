@@ -5,8 +5,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-
 @Entity
 @Table(name = "employee")
 @Getter @Setter @NoArgsConstructor
@@ -22,7 +20,4 @@ public class Employee {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
-
-    @Column(name = "last_weekend_worked")
-    private LocalDate lastWeekendWorked;
 }

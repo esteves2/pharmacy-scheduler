@@ -14,7 +14,7 @@ public class WeekendAssigner {
     /**
      * Phase 1a: Assign Sat/Sun pairs.
      * Returns DayPlans for Saturday and Sunday, updates the accumulator.
-     * Mutates employee.lastWeekendWorked in memory.
+     * Does NOT mutate Employee — rotation state is returned via WeekResult for the publishing path.
      */
     public List<DayPlan> assignWeekend(
             LocalDate saturday,
@@ -24,7 +24,8 @@ public class WeekendAssigner {
             Set<Long> absentEmployeeIdsSat,
             Set<Long> absentEmployeeIdsSun,
             WeekAccumulator accumulator,
-            List<ValidationMessage> messages) {
+            List<ValidationMessage> messages,
+            Map<Long, LocalDate> effectiveLastWeekendWorked) {
 
         boolean satIsHoliday = holidays.contains(saturday);
 
@@ -34,7 +35,7 @@ public class WeekendAssigner {
         List<Employee> available = employees.stream()
                 .filter(emp -> !absentEither.contains(emp.getId()))
                 .sorted(Comparator
-                        .comparing((Employee emp) -> emp.getLastWeekendWorked() == null ? LocalDate.MIN : emp.getLastWeekendWorked())
+                        .comparing((Employee emp) -> effectiveLastWeekendWorked.getOrDefault(emp.getId(), LocalDate.MIN))
                         .thenComparing(Employee::getId))
                 .collect(Collectors.toList());
 
@@ -57,28 +58,27 @@ public class WeekendAssigner {
             }
         }
 
-        for (Employee emp : picked) {
-            emp.setLastWeekendWorked(saturday);
-        }
-
         return List.of(satPlan, sunPlan);
     }
 
     /**
      * Phase 1b: Assign a mid-week holiday (Mon-Fri).
      * Same template as Sunday: 8-14 / 14-20, 4 workers in 2 pairs.
+     * rotationOverrides carries the weekend rotation updates from Phase 1a so that
+     * employees who already worked the weekend are correctly deprioritised here.
      */
     public DayPlan assignHoliday(
             LocalDate date,
             List<Employee> employees,
             Set<Long> absentEmployeeIds,
             WeekAccumulator accumulator,
-            List<ValidationMessage> messages) {
+            List<ValidationMessage> messages,
+            Map<Long, LocalDate> effectiveLastWeekendWorked) {
 
         List<Employee> available = employees.stream()
                 .filter(emp -> !absentEmployeeIds.contains(emp.getId()))
                 .sorted(Comparator
-                        .comparing((Employee emp) -> emp.getLastWeekendWorked() == null ? LocalDate.MIN : emp.getLastWeekendWorked())
+                        .comparing((Employee emp) -> effectiveLastWeekendWorked.getOrDefault(emp.getId(), LocalDate.MIN))
                         .thenComparing(Employee::getId))
                 .collect(Collectors.toList());
 

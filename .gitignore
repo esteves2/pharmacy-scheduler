@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### SQLite runtime DB ###
+pharmacy.db
+pharmacy.db-journal

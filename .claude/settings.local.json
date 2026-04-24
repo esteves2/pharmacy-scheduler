@@ -10,7 +10,16 @@
       "Bash(java -e \"import java.time.*; System.out.println\\(LocalDate.of\\(2026,12,26\\).getDayOfWeek\\(\\)\\);\")",
       "Bash(python3 -c \"import datetime; print\\(datetime.date\\(2026,12,26\\).strftime\\('%A'\\)\\)\")",
       "Bash(powershell *)",
-      "Bash(./mvnw test *)"
+      "Bash(./mvnw test *)",
+      "Read(//mnt/c/Users/Martim/IdeaProjects/**)",
+      "Bash(./mvnw.cmd compile *)",
+      "PowerShell(Test-Path *)",
+      "Bash(xargs grep *)",
+      "PowerShell(cd C:\\\\Users\\\\Martim\\\\IdeaProjects\\\\pharmacy-scheduler; .\\\\mvnw.cmd compile -q; .\\\\mvnw.cmd dependency:build-classpath \"-DincludeScope=runtime\" \"-Dmdep.outputFile=target/cp.txt\" -q; $cp = Get-Content target/cp.txt; java -cp \"target/classes;$cp\" com.farmacia.scheduler.engine.EngineSmokeTest 2>&1)",
+      "PowerShell(cd C:\\\\Users\\\\Martim\\\\IdeaProjects\\\\pharmacy-scheduler; .\\\\mvnw.cmd test-compile -q; .\\\\mvnw.cmd dependency:build-classpath \"-DincludeScope=runtime\" \"-Dmdep.outputFile=target/cp.txt\" -q; $cp = Get-Content target/cp.txt; java -cp \"target/test-classes;target/classes;$cp\" com.farmacia.scheduler.engine.EngineSmokeTest 2>&1)",
+      "PowerShell(cd C:\\\\Users\\\\Martim\\\\IdeaProjects\\\\pharmacy-scheduler; .\\\\mvnw.cmd test-compile -q; $cp = Get-Content target/cp.txt; java -cp \"target/test-classes;target/classes;$cp\" com.farmacia.scheduler.engine.EngineSmokeTest 2>&1)",
+      "Bash(./mvnw -q dependency:build-classpath -Dmdep.outputFile=/dev/stdout)",
+      "Bash(awk -F: '{print $1}')"
     ]
   }
 }
