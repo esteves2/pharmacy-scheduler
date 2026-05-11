@@ -30,4 +30,7 @@ public class ScheduleWeek {
 
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
+
+    @Column(name = "last_edited_at")
+    private LocalDateTime lastEditedAt;
 }

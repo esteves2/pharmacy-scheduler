@@ -1,6 +1,6 @@
 package com.farmacia.scheduler.service;
 
-import com.farmacia.scheduler.engine.model.WeekResult;
+import com.farmacia.scheduler.api.dto.WeekResponse;
 import com.farmacia.scheduler.model.Employee;
 import com.farmacia.scheduler.model.ScheduleWeek;
 import com.farmacia.scheduler.model.ShiftAssignment;
@@ -9,6 +9,7 @@ import com.farmacia.scheduler.repository.EmployeeRepository;
 import com.farmacia.scheduler.repository.ScheduleWeekRepository;
 import com.farmacia.scheduler.repository.ShiftAssignmentRepository;
 import com.farmacia.scheduler.service.exception.ScheduleAlreadyExistsException;
+import com.farmacia.scheduler.service.exception.ScheduleAlreadyPublishedException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -52,13 +53,14 @@ class ScheduleServiceGenerateTest {
 
     @Test
     void generate_writesDraftWeekWithAssignments() {
-        WeekResult result = scheduleService.generate(ISO_YEAR, ISO_WEEK);
+        WeekResponse result = scheduleService.generate(ISO_YEAR, ISO_WEEK);
 
-        // --- WeekResult structure ---
+        // --- WeekResponse structure ---
         assertThat(result.getDays()).hasSize(7);
         assertThat(result.getDays()).allSatisfy(day ->
                 assertThat(day.getAssignments()).isNotEmpty());
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValidationMessages())
+                .noneMatch(m -> m.getSeverity().equals("ERROR"));
 
         // --- Persisted ScheduleWeek ---
         ScheduleWeek week = scheduleWeekRepository
@@ -86,9 +88,33 @@ class ScheduleServiceGenerateTest {
         // Weekend shift templates have no break (ShiftTemplates Sat/Sun slots)
         assertThat(assignments).anySatisfy(a -> assertThat(a.getBreakStart()).isNull());
 
+        // --- Sara (maternity all year) must appear in summaries with 0h and UNDERTIME ---
+        assertThat(result.getEmployeeSummaries())
+                .anySatisfy(s -> {
+                    assertThat(s.getEmployee().getName()).isEqualTo("Sara");
+                    assertThat(s.getWeeklyHours()).isEqualTo(0.0);
+                    assertThat(s.getStatus()).isEqualTo("UNDERTIME");
+                });
+
         // --- Idempotency guard: second call must throw ---
         // The first generate() committed its transaction, so the ScheduleWeek row is visible here.
         assertThatThrownBy(() -> scheduleService.generate(ISO_YEAR, ISO_WEEK))
                 .isInstanceOf(ScheduleAlreadyExistsException.class);
+    }
+
+    @Test
+    void publish_setStatusAndPublishedAt() {
+        // ISO week 20 of 2026: Mon 2026-05-11 — no public holidays, clean inputs
+        scheduleService.generate(2026, 20);
+
+        WeekResponse published = scheduleService.publish(2026, 20);
+        assertThat(published.getStatus()).isEqualTo("PUBLISHED");
+
+        ScheduleWeek week = scheduleWeekRepository.findByIsoYearAndIsoWeek(2026, 20).orElseThrow();
+        assertThat(week.getStatus()).isEqualTo(WeekStatus.PUBLISHED);
+        assertThat(week.getPublishedAt()).isNotNull();
+
+        assertThatThrownBy(() -> scheduleService.publish(2026, 20))
+                .isInstanceOf(ScheduleAlreadyPublishedException.class);
     }
 }

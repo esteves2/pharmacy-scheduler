@@ -19,7 +19,12 @@
       "PowerShell(cd C:\\\\Users\\\\Martim\\\\IdeaProjects\\\\pharmacy-scheduler; .\\\\mvnw.cmd test-compile -q; .\\\\mvnw.cmd dependency:build-classpath \"-DincludeScope=runtime\" \"-Dmdep.outputFile=target/cp.txt\" -q; $cp = Get-Content target/cp.txt; java -cp \"target/test-classes;target/classes;$cp\" com.farmacia.scheduler.engine.EngineSmokeTest 2>&1)",
       "PowerShell(cd C:\\\\Users\\\\Martim\\\\IdeaProjects\\\\pharmacy-scheduler; .\\\\mvnw.cmd test-compile -q; $cp = Get-Content target/cp.txt; java -cp \"target/test-classes;target/classes;$cp\" com.farmacia.scheduler.engine.EngineSmokeTest 2>&1)",
       "Bash(./mvnw -q dependency:build-classpath -Dmdep.outputFile=/dev/stdout)",
-      "Bash(awk -F: '{print $1}')"
+      "Bash(awk -F: '{print $1}')",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Select-String *)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Eclipse Adoptium\\\\jdk-21.0.9.10-hotspot\\\\bin\\\\jar.exe\" tf \"$env:USERPROFILE\\\\.m2\\\\repository\\\\org\\\\springframework\\\\boot\\\\spring-boot-webmvc-test\\\\4.0.5\\\\spring-boot-webmvc-test-4.0.5.jar\" | Select-Object -First 50)",
+      "PowerShell(& \"C:\\\\Program Files\\\\JetBrains\\\\IntelliJ IDEA 2026.1.1\\\\plugins\\\\maven\\\\lib\\\\maven3\\\\bin\\\\mvn.cmd\" test 2>&1 | Select-Object -Last 50)",
+      "PowerShell(& \"C:\\\\Program Files\\\\JetBrains\\\\IntelliJ IDEA 2026.1.1\\\\plugins\\\\maven\\\\lib\\\\maven3\\\\bin\\\\mvn.cmd\" test 2>&1 | Select-Object -Last 30)"
     ]
   }
 }
