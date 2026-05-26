@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.WeekFields;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -122,7 +123,7 @@ public class ScheduleService {
 
         shiftAssignmentRepository.deleteByScheduleWeekId(week.getId());
 
-        List<ShiftAssignment> assignments = request.getAssignments().stream()
+        List<ShiftAssignment> assignments = request.assignments().stream()
                 .map(req -> toShiftAssignment(req, week))
                 .collect(Collectors.toList());
         shiftAssignmentRepository.saveAll(assignments);
@@ -154,6 +155,7 @@ public class ScheduleService {
                 .collect(Collectors.toSet());
 
         List<ShiftAssignment> assignments = shiftAssignmentRepository.findByScheduleWeekId(week.getId());
+        List<EmployeeAbsence> absences = absenceRepository.findOverlapping(weekStart, weekEnd);
 
         Map<Long, Employee> employeeMap = employeeRepository.findAll()
                 .stream()
@@ -161,6 +163,8 @@ public class ScheduleService {
 
         Map<Long, String> idToName = employeeMap.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getName()));
+
+        Map<Long, Double> absenceCredits = computeAbsenceCredits(absences, weekStart, weekEnd);
 
         Map<LocalDate, DayPlan> plansByDate = new TreeMap<>();
         for (ShiftAssignment sa : assignments) {
@@ -188,7 +192,7 @@ public class ScheduleService {
             }
         }
 
-        List<ValidationMessage> messages = new ScheduleValidator().validate(days, accumulator, idToName);
+        List<ValidationMessage> messages = new ScheduleValidator().validate(days, accumulator, idToName, absenceCredits);
         List<ValidationMessage> errors = messages.stream()
                 .filter(m -> m.getSeverity() == Severity.ERROR)
                 .toList();
@@ -217,6 +221,7 @@ public class ScheduleService {
                 .collect(Collectors.toSet());
 
         List<ShiftAssignment> assignments = shiftAssignmentRepository.findByScheduleWeekId(week.getId());
+        List<EmployeeAbsence> absences = absenceRepository.findOverlapping(weekStart, weekEnd);
 
         Map<Long, Employee> employeeMap = employeeRepository.findAll()
                 .stream()
@@ -224,6 +229,8 @@ public class ScheduleService {
 
         Map<Long, String> idToName = employeeMap.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getName()));
+
+        Map<Long, Double> absenceCredits = computeAbsenceCredits(absences, weekStart, weekEnd);
 
         // Rebuild DayPlan + SlotAssignment graph for validation
         Map<LocalDate, DayPlan> plansByDate = new TreeMap<>();
@@ -252,7 +259,7 @@ public class ScheduleService {
             }
         }
 
-        List<ValidationMessage> validationMessages = new ScheduleValidator().validate(days, accumulator, idToName);
+        List<ValidationMessage> validationMessages = new ScheduleValidator().validate(days, accumulator, idToName, absenceCredits);
 
         // Build DayResponse from ShiftAssignment entities to preserve assignment id
         Map<LocalDate, List<ShiftAssignment>> byDate = assignments.stream()
@@ -282,13 +289,14 @@ public class ScheduleService {
 
         List<EmployeeSummaryResponse> employeeSummaries = employeeMap.values().stream()
                 .map(emp -> {
-                    double hours = accumulator.getWeeklyHours(emp.getId());
+                    double worked = accumulator.getWeeklyHours(emp.getId());
+                    double effective = worked + absenceCredits.getOrDefault(emp.getId(), 0.0);
                     EmployeeDto employeeDto = new EmployeeDto(emp.getId(), emp.getName(), emp.getRole().name());
                     String summaryStatus;
-                    if (hours > ShiftTemplates.OVERTIME_THRESHOLD_HOURS) summaryStatus = "OVERTIME";
-                    else if (hours < ShiftTemplates.UNDERTIME_THRESHOLD_HOURS) summaryStatus = "UNDERTIME";
+                    if (worked > ShiftTemplates.OVERTIME_THRESHOLD_HOURS) summaryStatus = "OVERTIME";
+                    else if (effective < ShiftTemplates.UNDERTIME_THRESHOLD_HOURS) summaryStatus = "UNDERTIME";
                     else summaryStatus = "OK";
-                    return new EmployeeSummaryResponse(employeeDto, hours, summaryStatus);
+                    return new EmployeeSummaryResponse(employeeDto, worked, effective, summaryStatus);
                 })
                 .collect(Collectors.toList());
 
@@ -330,15 +338,31 @@ public class ScheduleService {
         return entity;
     }
 
+    //Used only for UNDERTIME threshold checks - not for scheduling decisions
+    private static Map<Long, Double> computeAbsenceCredits(
+            List<EmployeeAbsence> absences, LocalDate weekStart, LocalDate weekEnd) {
+        Map<Long, Double> credits = new HashMap<>();
+        for (EmployeeAbsence a : absences) {
+            if (a.getType() == AbsenceType.FOLGA) continue;
+            LocalDate from = a.getStartDate().isBefore(weekStart) ? weekStart : a.getStartDate();
+            LocalDate to = a.getEndDate().isAfter(weekEnd) ? weekEnd : a.getEndDate();
+            if (!from.isAfter(to)) {
+                long days = ChronoUnit.DAYS.between(from, to) + 1;
+                credits.merge(a.getEmployeeId(), days * 8.0, Double::sum);
+            }
+        }
+        return credits;
+    }
+
     private static ShiftAssignment toShiftAssignment(AssignmentWriteRequest req, ScheduleWeek week) {
         ShiftAssignment sa = new ShiftAssignment();
         sa.setScheduleWeekId(week.getId());
-        sa.setEmployeeId(req.getEmployeeId());
-        sa.setDate(req.getDate());
-        sa.setStartTime(req.getStartTime());
-        sa.setEndTime(req.getEndTime());
-        sa.setBreakStart(req.getBreakStart());
-        sa.setBreakEnd(req.getBreakEnd());
+        sa.setEmployeeId(req.employeeId());
+        sa.setDate(req.date());
+        sa.setStartTime(req.startTime());
+        sa.setEndTime(req.endTime());
+        sa.setBreakStart(req.breakStart());
+        sa.setBreakEnd(req.breakEnd());
         return sa;
     }
 }

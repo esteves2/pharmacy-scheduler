@@ -9,12 +9,6 @@ public class ShiftTrimmer {
 
     private static final double WEEKLY_HOURS_CAP = 40.0;
 
-    /**
-     * Phase 3: Trim overtime.
-     * Process most-over-target employee first. For each, find assignments
-     * safe to remove (headcount stays >= minimum, F constraint preserved).
-     * Iterative — recomputes after every removal.
-     */
     public void trim(
             List<DayPlan> days,
             WeekAccumulator accumulator,
@@ -57,11 +51,6 @@ public class ShiftTrimmer {
         }
     }
 
-    /**
-     * Find the best assignment to remove for this employee.
-     * Safe = headcount stays >= minimum, F coverage preserved.
-     * Best = highest hours saved.
-     */
     private SlotAssignment removeBestCandidate(long employeeId, double currentHours, List<DayPlan> days) {
         double excess = currentHours - WEEKLY_HOURS_CAP;
 
@@ -97,10 +86,6 @@ public class ShiftTrimmer {
 
     private record Candidate(SlotAssignment slot, DayPlan day) {}
 
-    /**
-     * Safe if every hour this slot covers still meets minimum headcount
-     * AND retains at least 1 F after removal.
-     */
     private boolean isSafeToRemove(SlotAssignment slot, DayPlan day) {
         for (int hour = slot.getStartTime().getHour(); hour < slot.getEndTime().getHour(); hour++) {
             if (slot.getBreakStart() != null

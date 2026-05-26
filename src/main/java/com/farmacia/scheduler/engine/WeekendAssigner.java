@@ -11,11 +11,6 @@ import java.util.stream.Collectors;
 
 public class WeekendAssigner {
 
-    /**
-     * Phase 1a: Assign Sat/Sun pairs.
-     * Returns DayPlans for Saturday and Sunday, updates the accumulator.
-     * Does NOT mutate Employee — rotation state is returned via WeekResult for the publishing path.
-     */
     public List<DayPlan> assignWeekend(
             LocalDate saturday,
             LocalDate sunday,
@@ -61,12 +56,6 @@ public class WeekendAssigner {
         return List.of(satPlan, sunPlan);
     }
 
-    /**
-     * Phase 1b: Assign a mid-week holiday (Mon-Fri).
-     * Same template as Sunday: 8-14 / 14-20, 4 workers in 2 pairs.
-     * rotationOverrides carries the weekend rotation updates from Phase 1a so that
-     * employees who already worked the weekend are correctly deprioritised here.
-     */
     public DayPlan assignHoliday(
             LocalDate date,
             List<Employee> employees,
@@ -136,9 +125,6 @@ public class WeekendAssigner {
         return picked;
     }
 
-    /**
-     * Split picked workers into 2 pairs, each with at least 1 F where possible.
-     */
     private List<List<Employee>> formPairs(List<Employee> picked) {
         List<Employee> fs = picked.stream()
                 .filter(emp -> emp.getRole() == Role.F)

@@ -18,11 +18,6 @@ public class HolidayGeneratorService {
         this.holidayRepository = holidayRepository;
     }
 
-    /**
-     * Ensures the given year has holiday rows in the database.
-     * If the year already has any rows (from Flyway seed or prior generation),
-     * does nothing — user edits are preserved.
-     */
     @Transactional
     public void ensureGenerated(int year) {
         LocalDate start = LocalDate.of(year, 1, 1);

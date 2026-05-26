@@ -10,11 +10,6 @@ import java.util.*;
 
 public class WeekdayFiller {
 
-    /**
-     * Phase 2: Fill a normal weekday (Mon-Sat, no holiday).
-     * Applies the 6-slot template. Picks employees sorted by
-     * priorWeeksHours ASC, weeklyHours ASC, id ASC.
-     */
     public DayPlan fillWeekday(
             LocalDate date,
             DayType dayType,
@@ -96,10 +91,6 @@ public class WeekdayFiller {
         return candidates.getFirst();
     }
 
-    /**
-     * True if any hour this candidate slot spans currently has no F coverage
-     * AND no remaining slot can cover that same hour.
-     */
     private boolean needsFarmaceuticaNow(
             DayPlan plan,
             LocalTime start,
@@ -129,12 +120,6 @@ public class WeekdayFiller {
         return false;
     }
 
-    /**
-     * Lookahead. Greedy set cover over the uncovered hours across remaining slots.
-     * Returns true if the minimum number of Fs needed to cover those hours
-     * exceeds availableFs - 1 (i.e. spending one F here would leave later slots
-     * unable to get full coverage).
-     */
     private boolean mustReserveFarmaceuticaForLaterSlots(
             DayPlan plan,
             List<Employee> candidates,

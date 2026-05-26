@@ -45,5 +45,5 @@ public final class ShiftTemplates {
 
     // Weekly-hour thresholds
     public static final int OVERTIME_THRESHOLD_HOURS  = 40;
-    public static final int UNDERTIME_THRESHOLD_HOURS = 25;
+    public static final int UNDERTIME_THRESHOLD_HOURS = 26;
 }

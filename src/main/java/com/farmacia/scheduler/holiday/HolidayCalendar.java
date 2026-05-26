@@ -7,14 +7,6 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-/**
- * Pure calculator of Portuguese public holidays observed at Farmácia Esperança
- * (Santa Cruz, Madeira). No Spring, no JPA, no I/O.
- *
- * <p>Per year: 14 fixed dates + 4 Easter-derived dates = 18 rows, minus any
- * collisions (roughly once per decade). Precedence on collision:
- * national fixed &gt; Easter-derived &gt; regional fixed &gt; municipal fixed.
- */
 public final class HolidayCalendar {
 
     private HolidayCalendar() {}
@@ -77,10 +69,7 @@ public final class HolidayCalendar {
         map.putIfAbsent(date, new HolidayDate(date, name));
     }
 
-    /**
-     * Computes Western (Gregorian) Easter Sunday via the Anonymous Gregorian
-     * algorithm (Meeus/Jones/Butcher). Pure arithmetic, no table lookup.
-     */
+    // Meeus/Jones/Butcher algorithm for Western Easter Sunday.
     static LocalDate computeEaster(int year) {
         int a = year % 19;
         int b = year / 100;

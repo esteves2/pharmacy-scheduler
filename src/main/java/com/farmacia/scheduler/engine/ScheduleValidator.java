@@ -11,12 +11,12 @@ public class ScheduleValidator {
     private static final double WEEKLY_HOURS_UPPER = ShiftTemplates.OVERTIME_THRESHOLD_HOURS;
     private static final double WEEKLY_HOURS_LOWER = ShiftTemplates.UNDERTIME_THRESHOLD_HOURS;
 
-    /**
-     * Phase 4: Validate. Read-only scan of a completed week.
-     * Per-hour checks: F coverage, minimum headcount, target headcount.
-     * Per-employee checks: overtime, undertime.
-     */
-    public List<ValidationMessage> validate(List<DayPlan> days, WeekAccumulator accumulator, Map<Long, String> idToName) {
+    public List<ValidationMessage> validate(
+            List<DayPlan> days,
+            WeekAccumulator accumulator,
+            Map<Long, String> idToName,
+            Map<Long, Double> absenceCredits) {
+
         List<ValidationMessage> messages = new ArrayList<>();
 
         for (DayPlan day : days) {
@@ -25,15 +25,16 @@ public class ScheduleValidator {
 
         for (Map.Entry<Long, Double> entry : accumulator.getAllWeeklyHours().entrySet()) {
             long employeeId = entry.getKey();
-            double hours = entry.getValue();
+            double worked = entry.getValue();
+            double effective = worked + absenceCredits.getOrDefault(employeeId, 0.0);
             String name = idToName.getOrDefault(employeeId, "Employee " + employeeId);
 
-            if (hours > WEEKLY_HOURS_UPPER) {
+            if (worked > WEEKLY_HOURS_UPPER) {
                 messages.add(ValidationMessage.error(null, null,
-                        name + " exceeds 40h (" + hours + "h)"));
-            } else if (hours < WEEKLY_HOURS_LOWER && hours > 0) {
+                        name + " exceeds " + (int) WEEKLY_HOURS_UPPER + "h (" + worked + "h)"));
+            } else if (effective < WEEKLY_HOURS_LOWER) {
                 messages.add(ValidationMessage.warning(null, null,
-                        name + " below 25h (" + hours + "h)"));
+                        name + " below " + (int) WEEKLY_HOURS_LOWER + "h (" + effective + "h effective)"));
             }
         }
 

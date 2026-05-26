@@ -5,10 +5,12 @@ import com.farmacia.scheduler.model.Employee;
 import com.farmacia.scheduler.model.EmployeeAbsence;
 import com.farmacia.scheduler.model.ShiftAssignment;
 
+import com.farmacia.scheduler.model.AbsenceType;
 import org.springframework.stereotype.Component;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -20,18 +22,6 @@ public class ScheduleEngine {
     private final ShiftTrimmer trimmer = new ShiftTrimmer();
     private final ScheduleValidator validator = new ScheduleValidator();
 
-    /**
-     * Generate a full week schedule.
-     *
-     * @param isoYear            ISO week year
-     * @param isoWeek            ISO week number
-     * @param monday             the Monday of the target week
-     * @param employees          all active employees (excluding those on long absences at query time)
-     * @param absences           all absences overlapping this week
-     * @param holidays           public holidays overlapping this week
-     * @param priorAssignments   assignments from the last 4 weeks (for hour lookback)
-     * @return WeekResult with days, validation messages, hour totals
-     */
     public WeekResult generate(
             int isoYear,
             int isoWeek,
@@ -102,7 +92,9 @@ public class ScheduleEngine {
         trimmer.trim(days, accumulator, messages, idToName);
 
         // Phase 4: Validate
-        List<ValidationMessage> validationMessages = validator.validate(days, accumulator, idToName);
+        LocalDate weekEnd = monday.plusDays(6);
+        Map<Long, Double> absenceCredits = computeAbsenceCredits(absences, monday, weekEnd);
+        List<ValidationMessage> validationMessages = validator.validate(days, accumulator, idToName, absenceCredits);
         messages.addAll(validationMessages);
 
         return new WeekResult(isoYear, isoWeek, days, messages, accumulator.getAllWeeklyHours());
@@ -129,6 +121,22 @@ public class ScheduleEngine {
             minutes -= java.time.Duration.between(bStart, bEnd).toMinutes();
         }
         return minutes / 60.0;
+    }
+
+    // Credits 8h per absence day (non-FOLGA). Used only for UNDERTIME check, not scheduling.
+    private Map<Long, Double> computeAbsenceCredits(
+            List<EmployeeAbsence> absences, LocalDate weekStart, LocalDate weekEnd) {
+        Map<Long, Double> credits = new HashMap<>();
+        for (EmployeeAbsence a : absences) {
+            if (a.getType() == AbsenceType.FOLGA) continue;
+            LocalDate from = a.getStartDate().isBefore(weekStart) ? weekStart : a.getStartDate();
+            LocalDate to = a.getEndDate().isAfter(weekEnd) ? weekEnd : a.getEndDate();
+            if (!from.isAfter(to)) {
+                long days = ChronoUnit.DAYS.between(from, to) + 1;
+                credits.merge(a.getEmployeeId(), days * 8.0, Double::sum);
+            }
+        }
+        return credits;
     }
 
     private Set<Long> absentEmployeesOn(List<EmployeeAbsence> absences, LocalDate date) {
