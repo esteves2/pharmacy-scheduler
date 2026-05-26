@@ -36,6 +36,12 @@ public class GlobalExceptionHandler {
                 .body(Map.of("message", ex.getMessage()));
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleBadArgument(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("message", ex.getMessage()));
+    }
+
     @ExceptionHandler(ScheduleHasValidationErrorsException.class)
     public ResponseEntity<Map<String, Object>> handleValidationErrors(ScheduleHasValidationErrorsException ex) {
         List<ValidationMessageResponse> errors = ex.getErrors().stream()
@@ -45,6 +51,6 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("message", ex.getMessage());
         body.put("errors", errors);
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
+        return ResponseEntity.status(422).body(body);
     }
 }

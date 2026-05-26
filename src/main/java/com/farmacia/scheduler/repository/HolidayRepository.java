@@ -10,7 +10,6 @@ import java.util.List;
 
 public interface HolidayRepository extends JpaRepository<@NonNull PublicHoliday,@NonNull Long> {
 
-    //TODO: used by HolidayController.listByYear (not yet implemented)
     @Query("SELECT holiday FROM PublicHoliday holiday WHERE holiday.date >= :from AND holiday.date <= :to ORDER BY holiday.date")
     List<PublicHoliday> findBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
 
