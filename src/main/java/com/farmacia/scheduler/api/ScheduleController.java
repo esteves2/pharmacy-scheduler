@@ -1,20 +1,53 @@
 package com.farmacia.scheduler.api;
 
 import com.farmacia.scheduler.api.dto.WeekResponse;
+import com.farmacia.scheduler.api.dto.WeekSummaryResponse;
 import com.farmacia.scheduler.api.dto.WeekWriteRequest;
+import com.farmacia.scheduler.repository.ScheduleWeekRepository;
 import com.farmacia.scheduler.service.ScheduleService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
+import java.time.temporal.WeekFields;
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/schedules/weeks")
 public class ScheduleController {
 
     private final ScheduleService scheduleService;
+    private final ScheduleWeekRepository scheduleWeekRepository;
 
-    public ScheduleController(ScheduleService scheduleService) {
+    public ScheduleController(ScheduleService scheduleService, ScheduleWeekRepository scheduleWeekRepository) {
         this.scheduleService = scheduleService;
+        this.scheduleWeekRepository = scheduleWeekRepository;
+    }
+
+    @GetMapping
+    public List<WeekSummaryResponse> listByMonth(
+            @RequestParam int year,
+            @RequestParam int month) {
+        LocalDate firstDay = LocalDate.of(year, month, 1);
+        LocalDate lastDay = firstDay.withDayOfMonth(firstDay.lengthOfMonth());
+        LocalDate cursor = firstDay.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+
+        List<WeekSummaryResponse> result = new ArrayList<>();
+        while (!cursor.isAfter(lastDay)) {
+            int isoYear = cursor.get(WeekFields.ISO.weekBasedYear());
+            int isoWeek = cursor.get(WeekFields.ISO.weekOfWeekBasedYear());
+            String status = scheduleWeekRepository
+                    .findByIsoYearAndIsoWeek(isoYear, isoWeek)
+                    .map(w -> w.getStatus().name())
+                    .orElse(null);
+            result.add(new WeekSummaryResponse(isoYear, isoWeek, cursor, cursor.plusDays(6), status));
+            cursor = cursor.plusWeeks(1);
+        }
+        return result;
     }
 
     @PostMapping("/{isoYear}/{isoWeek}/generate")
@@ -44,5 +77,19 @@ public class ScheduleController {
             @PathVariable int isoYear,
             @PathVariable int isoWeek) {
         return ResponseEntity.ok(scheduleService.publish(isoYear, isoWeek));
+    }
+
+    @PostMapping("/{isoYear}/{isoWeek}/regenerate")
+    public ResponseEntity<WeekResponse> regenerate(
+            @PathVariable int isoYear,
+            @PathVariable int isoWeek) {
+        return ResponseEntity.ok(scheduleService.regenerate(isoYear, isoWeek));
+    }
+
+    @PostMapping("/{isoYear}/{isoWeek}/replan")
+    public ResponseEntity<WeekResponse> replan(
+            @PathVariable int isoYear,
+            @PathVariable int isoWeek) {
+        return ResponseEntity.ok(scheduleService.replan(isoYear, isoWeek));
     }
 }

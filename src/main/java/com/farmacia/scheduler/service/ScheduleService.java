@@ -52,6 +52,13 @@ public class ScheduleService {
         this.scheduleEngine = scheduleEngine;
     }
 
+    private static LocalDate isoWeekMonday(int isoYear, int isoWeek) {
+        // Jan 4 is always in ISO week 1, anchors correctly across year boundaries
+        return LocalDate.of(isoYear, 1, 4)
+                .with(WeekFields.ISO.weekOfWeekBasedYear(), isoWeek)
+                .with(DayOfWeek.MONDAY);
+    }
+
     @Transactional
     public WeekResponse generate(int isoYear, int isoWeek) {
         if (scheduleWeekRepository.findByIsoYearAndIsoWeek(isoYear, isoWeek).isPresent()) {
@@ -59,10 +66,7 @@ public class ScheduleService {
                     "Schedule already exists for ISO year %d week %d".formatted(isoYear, isoWeek));
         }
 
-        // Jan 4 is always in ISO week 1, so this anchors correctly regardless of year boundary
-        LocalDate weekStart = LocalDate.of(isoYear, 1, 4)
-                .with(WeekFields.ISO.weekOfWeekBasedYear(), isoWeek)
-                .with(DayOfWeek.MONDAY);
+        LocalDate weekStart = isoWeekMonday(isoYear, isoWeek);
         LocalDate weekEnd = weekStart.plusDays(6);
 
         holidayGeneratorService.ensureGenerated(weekStart.getYear());
@@ -144,9 +148,7 @@ public class ScheduleService {
                     "Schedule for ISO year %d week %d is already published".formatted(isoYear, isoWeek));
         }
 
-        LocalDate weekStart = LocalDate.of(isoYear, 1, 4)
-                .with(WeekFields.ISO.weekOfWeekBasedYear(), isoWeek)
-                .with(DayOfWeek.MONDAY);
+        LocalDate weekStart = isoWeekMonday(isoYear, isoWeek);
         LocalDate weekEnd = weekStart.plusDays(6);
 
         Set<LocalDate> holidays = holidayRepository.findBetween(weekStart, weekEnd)
@@ -206,13 +208,125 @@ public class ScheduleService {
         return buildWeekResponse(saved);
     }
 
+    @Transactional
+    public WeekResponse regenerate(int isoYear, int isoWeek) {
+        ScheduleWeek week = scheduleWeekRepository.findByIsoYearAndIsoWeek(isoYear, isoWeek)
+                .orElseThrow(() -> new ScheduleNotFoundException(
+                        "No schedule found for ISO year %d week %d".formatted(isoYear, isoWeek)));
+
+        if (week.getStatus() == WeekStatus.PUBLISHED) {
+            throw new ScheduleAlreadyPublishedException(
+                    "Cannot regenerate a published schedule for ISO year %d week %d".formatted(isoYear, isoWeek));
+        }
+
+        LocalDate monday = isoWeekMonday(isoYear, isoWeek);
+        LocalDate weekEnd = monday.plusDays(6);
+
+        holidayGeneratorService.ensureGenerated(monday.getYear());
+        if (weekEnd.getYear() != monday.getYear()) {
+            holidayGeneratorService.ensureGenerated(weekEnd.getYear());
+        }
+
+        shiftAssignmentRepository.deleteByScheduleWeekId(week.getId());
+
+        List<Employee> employees = employeeRepository.findAll();
+        List<EmployeeAbsence> absences = absenceRepository.findOverlapping(monday, weekEnd);
+        Set<LocalDate> holidays = holidayRepository.findBetween(monday, weekEnd)
+                .stream().map(PublicHoliday::getDate).collect(Collectors.toSet());
+        List<ShiftAssignment> priorAssignments =
+                shiftAssignmentRepository.findByDateRange(monday.minusWeeks(4), monday.minusDays(1));
+
+        Map<Long, LocalDate> effectiveLastWeekendWorked = priorAssignments.stream()
+                .filter(a -> a.getDate().getDayOfWeek() == DayOfWeek.SATURDAY)
+                .collect(Collectors.toMap(
+                        ShiftAssignment::getEmployeeId,
+                        ShiftAssignment::getDate,
+                        (a, b) -> !a.isBefore(b) ? a : b));
+
+        WeekResult result = scheduleEngine.generate(
+                isoYear, isoWeek, monday, employees, absences, holidays, priorAssignments,
+                effectiveLastWeekendWorked);
+
+        List<ShiftAssignment> assignments = new ArrayList<>();
+        for (DayPlan day : result.getDays()) {
+            for (SlotAssignment slot : day.getAssignments()) {
+                assignments.add(getShiftAssignment(slot, week));
+            }
+        }
+        shiftAssignmentRepository.saveAll(assignments);
+
+        week.setGeneratedAt(LocalDateTime.now());
+        scheduleWeekRepository.save(week);
+        return buildWeekResponse(week);
+    }
+
+    @Transactional
+    public WeekResponse replan(int isoYear, int isoWeek) {
+        ScheduleWeek week = scheduleWeekRepository.findByIsoYearAndIsoWeek(isoYear, isoWeek)
+                .orElseThrow(() -> new ScheduleNotFoundException(
+                        "No schedule found for ISO year %d week %d".formatted(isoYear, isoWeek)));
+
+        LocalDate monday = isoWeekMonday(isoYear, isoWeek);
+        LocalDate weekEnd = monday.plusDays(6);
+        LocalDate today = LocalDate.now();
+
+        // Nothing to regenerate if today is after the week
+        if (today.isAfter(weekEnd)) {
+            return buildWeekResponse(week);
+        }
+
+        LocalDate replanFrom = today.isBefore(monday) ? monday : today;
+
+        holidayGeneratorService.ensureGenerated(monday.getYear());
+        if (weekEnd.getYear() != monday.getYear()) {
+            holidayGeneratorService.ensureGenerated(weekEnd.getYear());
+        }
+
+        shiftAssignmentRepository.deleteByScheduleWeekIdAndDateFrom(week.getId(), replanFrom);
+
+        List<ShiftAssignment> lockedAssignments =
+                shiftAssignmentRepository.findByScheduleWeekIdAndDateBefore(week.getId(), replanFrom);
+
+        List<Employee> employees = employeeRepository.findAll();
+        List<EmployeeAbsence> absences = absenceRepository.findOverlapping(monday, weekEnd);
+        Set<LocalDate> holidays = holidayRepository.findBetween(monday, weekEnd)
+                .stream().map(PublicHoliday::getDate).collect(Collectors.toSet());
+        List<ShiftAssignment> priorAssignments =
+                shiftAssignmentRepository.findByDateRange(monday.minusWeeks(4), monday.minusDays(1));
+
+        Map<Long, LocalDate> effectiveLastWeekendWorked = new HashMap<>(priorAssignments.stream()
+                .filter(a -> a.getDate().getDayOfWeek() == DayOfWeek.SATURDAY)
+                .collect(Collectors.toMap(
+                        ShiftAssignment::getEmployeeId,
+                        ShiftAssignment::getDate,
+                        (a, b) -> !a.isBefore(b) ? a : b)));
+
+        WeekResult result = scheduleEngine.replan(
+                isoYear, isoWeek, monday, replanFrom,
+                employees, absences, holidays, priorAssignments,
+                effectiveLastWeekendWorked, lockedAssignments);
+
+        // Persist only newly generated assignments (locked ones are already in the DB)
+        List<ShiftAssignment> newAssignments = new ArrayList<>();
+        for (DayPlan day : result.getDays()) {
+            if (day.getDate().isBefore(replanFrom)) continue;
+            for (SlotAssignment slot : day.getAssignments()) {
+                newAssignments.add(getShiftAssignment(slot, week));
+            }
+        }
+        shiftAssignmentRepository.saveAll(newAssignments);
+
+        week.setStatus(WeekStatus.DRAFT);
+        week.setLastEditedAt(LocalDateTime.now());
+        scheduleWeekRepository.save(week);
+        return buildWeekResponse(week);
+    }
+
     private WeekResponse buildWeekResponse(ScheduleWeek week) {
         int isoYear = week.getIsoYear();
         int isoWeek = week.getIsoWeek();
 
-        LocalDate weekStart = LocalDate.of(isoYear, 1, 4)
-                .with(WeekFields.ISO.weekOfWeekBasedYear(), isoWeek)
-                .with(DayOfWeek.MONDAY);
+        LocalDate weekStart = isoWeekMonday(isoYear, isoWeek);
         LocalDate weekEnd = weekStart.plusDays(6);
 
         Set<LocalDate> holidays = holidayRepository.findBetween(weekStart, weekEnd)

@@ -19,4 +19,10 @@ public interface ShiftAssignmentRepository extends JpaRepository<@NonNull ShiftA
 
     @Query("SELECT assignment FROM ShiftAssignment assignment WHERE assignment.date >= :from AND assignment.date <= :to")
     List<ShiftAssignment> findByDateRange(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    List<ShiftAssignment> findByScheduleWeekIdAndDateBefore(Long scheduleWeekId, LocalDate date);
+
+    @Modifying(clearAutomatically = true)
+    @Query("DELETE FROM ShiftAssignment s WHERE s.scheduleWeekId = :weekId AND s.date >= :from")
+    void deleteByScheduleWeekIdAndDateFrom(@Param("weekId") Long weekId, @Param("from") LocalDate from);
 }
