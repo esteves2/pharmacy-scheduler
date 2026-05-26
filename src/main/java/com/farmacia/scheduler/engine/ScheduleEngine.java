@@ -187,14 +187,18 @@ public class ScheduleEngine {
         }
 
         List<DayPlan> allDays = new ArrayList<>(daysByDate.values());
+        // Trim only touches newly generated days — locked past assignments can't be changed
+        List<DayPlan> newDays = allDays.stream()
+                .filter(d -> !d.getDate().isBefore(fillFrom))
+                .toList();
 
         Map<Long, String> idToName = employees.stream()
                 .collect(Collectors.toMap(Employee::getId, Employee::getName));
 
-        // Phase 3: trim
-        trimmer.trim(allDays, accumulator, messages, idToName);
+        // Phase 3: trim new days only
+        trimmer.trim(newDays, accumulator, messages, idToName);
 
-        // Phase 4: validate
+        // Phase 4: validate all days (locked + new)
         Map<Long, Double> absenceCredits = computeAbsenceCredits(absences, monday, sunday);
         messages.addAll(validator.validate(allDays, accumulator, idToName, absenceCredits));
 

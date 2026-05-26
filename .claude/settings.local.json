@@ -26,7 +26,8 @@
       "PowerShell(& \"C:\\\\Program Files\\\\JetBrains\\\\IntelliJ IDEA 2026.1.1\\\\plugins\\\\maven\\\\lib\\\\maven3\\\\bin\\\\mvn.cmd\" test 2>&1 | Select-Object -Last 50)",
       "PowerShell(& \"C:\\\\Program Files\\\\JetBrains\\\\IntelliJ IDEA 2026.1.1\\\\plugins\\\\maven\\\\lib\\\\maven3\\\\bin\\\\mvn.cmd\" test 2>&1 | Select-Object -Last 30)",
       "PowerShell(git *)",
-      "PowerShell(& \"C:\\\\Program Files\\\\JetBrains\\\\IntelliJ IDEA 2026.1.1\\\\plugins\\\\maven\\\\lib\\\\maven3\\\\bin\\\\mvn.cmd\" test 2>&1 | Select-Object -Last 15)"
+      "PowerShell(& \"C:\\\\Program Files\\\\JetBrains\\\\IntelliJ IDEA 2026.1.1\\\\plugins\\\\maven\\\\lib\\\\maven3\\\\bin\\\\mvn.cmd\" test 2>&1 | Select-Object -Last 15)",
+      "PowerShell(Remove-Item *)"
     ]
   }
 }
