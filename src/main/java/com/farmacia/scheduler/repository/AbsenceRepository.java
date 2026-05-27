@@ -13,5 +13,4 @@ public interface AbsenceRepository extends JpaRepository< @NonNull EmployeeAbsen
     @Query("SELECT absence FROM EmployeeAbsence absence WHERE absence.startDate <= :to AND absence.endDate >= :from")
     List<EmployeeAbsence> findOverlapping(@Param("from") LocalDate from, @Param("to") LocalDate to);
 
-    List<EmployeeAbsence> findByEmployeeId(Long employeeId);
 }

@@ -581,6 +581,7 @@ To do a structural regeneration of either a DRAFT or PUBLISHED week, use **repla
 ### Frontend
 
 - React 18
+- TypeScript
 - Vite (build tool)
 - Tailwind CSS (styling)
 - Built output served from `src/main/resources/static/`

@@ -27,7 +27,19 @@
       "PowerShell(& \"C:\\\\Program Files\\\\JetBrains\\\\IntelliJ IDEA 2026.1.1\\\\plugins\\\\maven\\\\lib\\\\maven3\\\\bin\\\\mvn.cmd\" test 2>&1 | Select-Object -Last 30)",
       "PowerShell(git *)",
       "PowerShell(& \"C:\\\\Program Files\\\\JetBrains\\\\IntelliJ IDEA 2026.1.1\\\\plugins\\\\maven\\\\lib\\\\maven3\\\\bin\\\\mvn.cmd\" test 2>&1 | Select-Object -Last 15)",
-      "PowerShell(Remove-Item *)"
+      "PowerShell(Remove-Item *)",
+      "PowerShell(Get-Command *)",
+      "Bash(npm --version)",
+      "PowerShell(winget install *)",
+      "PowerShell(npm *)",
+      "PowerShell(npm install *)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); cd C:\\\\Users\\\\Martim\\\\IdeaProjects\\\\pharmacy-scheduler\\\\frontend; Start-Process -FilePath \"cmd.exe\" -ArgumentList \"/c npm run dev > C:\\\\Users\\\\Martim\\\\AppData\\\\Local\\\\Temp\\\\vite-dev.log 2>&1\" -WindowStyle Hidden; Start-Sleep -Seconds 5; Get-Content \"C:\\\\Users\\\\Martim\\\\AppData\\\\Local\\\\Temp\\\\vite-dev.log\")",
+      "WebFetch(domain:localhost)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); Invoke-WebRequest -Uri \"http://localhost:5173\" -UseBasicParsing | Select-Object -ExpandProperty Content | Select-Object -First 50)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); cd C:\\\\Users\\\\Martim\\\\IdeaProjects\\\\pharmacy-scheduler\\\\frontend; npx playwright install chromium --with-deps 2>&1 | Select-Object -Last 5)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); cd C:\\\\Users\\\\Martim\\\\IdeaProjects\\\\pharmacy-scheduler\\\\frontend; node C:\\\\Users\\\\Martim\\\\AppData\\\\Local\\\\Temp\\\\screenshot.mjs 2>&1)",
+      "PowerShell(npm root *)",
+      "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); node C:\\\\Users\\\\Martim\\\\AppData\\\\Local\\\\Temp\\\\screenshot.mjs)"
     ]
   }
 }
