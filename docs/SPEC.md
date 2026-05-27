@@ -392,17 +392,20 @@ No `worker_preferences` table. Deterministic sorting produces consistent schedul
 | GET    | /api/employees                    | List all employees                      |
 | GET    | /api/employees/{id}               | Get one employee                        |
 | PUT    | /api/employees/{id}               | Update employee                         |
-| GET    | /api/public-holidays?year={year}  | List holidays, filtered by year         |
-| POST   | /api/public-holidays              | Add a holiday                           |
-| DELETE | /api/public-holidays/{id}         | Remove a holiday                        |
+| GET    | /api/holidays?year={year}         | List holidays, filtered by year         |
+| POST   | /api/holidays                     | Add a holiday                           |
+| PUT    | /api/holidays/{id}                | Update a holiday                        |
+| DELETE | /api/holidays/{id}                | Remove a holiday                        |
 | GET    | /api/absences?from={date}&to={date} | List absences in date range          |
 | POST   | /api/absences                     | Create absence                          |
+| PUT    | /api/absences/{id}                | Update absence                          |
 | DELETE | /api/absences/{id}                | Remove absence                          |
 
 ### Schedule Operations (domain endpoints)
 
 | Method | Endpoint                                            | Purpose                                    |
 |--------|-----------------------------------------------------|--------------------------------------------|
+| GET    | /api/schedules/weeks?year={year}&month={month}      | List weeks for a month with status badges  |
 | POST   | /api/schedules/weeks/{isoYear}/{isoWeek}/generate   | Run engine, create DRAFT week              |
 | GET    | /api/schedules/weeks/{isoYear}/{isoWeek}            | Fetch week (full rich response)            |
 | PUT    | /api/schedules/weeks/{isoYear}/{isoWeek}            | Save full week, re-validate, return result |
@@ -460,12 +463,14 @@ Note: PUT (`save`) is allowed on both DRAFT and PUBLISHED weeks. On PUBLISHED, s
     {
       "employee": { "id": 7, "name": "Natty", "role": "T" },
       "weeklyHours": 42.0,
+      "effectiveHours": 42.0,
       "status": "OVERTIME"
     },
     {
       "employee": { "id": 9, "name": "Crisanta", "role": "T" },
       "weeklyHours": 22.0,
-      "status": "UNDERTIME"
+      "effectiveHours": 38.0,
+      "status": "OK"
     }
   ],
   "validationMessages": [
@@ -486,6 +491,8 @@ Note: PUT (`save`) is allowed on both DRAFT and PUBLISHED weeks. On PUBLISHED, s
 `hours` per assignment is pre-computed, break already subtracted. Frontend never does time math.
 
 `status` on employee summaries is `OK`, `OVERTIME`, or `UNDERTIME`. Maps to no color, red, yellow. Backend computes it.
+
+`effectiveHours` = `weeklyHours` + absence credits (8h per non-FOLGA absence day within the week). The UNDERTIME check runs against `effectiveHours`, not `weeklyHours`, so sick days don't falsely flag as undertimed. Frontend can display both.
 
 ### Schedule Week — Write Payload (PUT)
 
@@ -528,13 +535,13 @@ Flat. `id` is null for new assignments. Backend deletes all existing assignments
 
 Employee embedded. Date-filtered by query params. The availability calendar fetches one month at a time.
 
-### Public Holiday (GET)
+### Holiday (GET)
 
 ```json
 { "id": 1, "date": "2026-01-01", "name": "Ano Novo" }
 ```
 
-Filtered by year.
+Filtered by year. Endpoint is `/api/holidays` (not `/api/public-holidays`).
 
 ---
 

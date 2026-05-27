@@ -4,7 +4,7 @@ import java.time.LocalDate;
 
 public record AbsenceResponse(
         Long id,
-        Long employeeId,
+        EmployeeDto employee,
         LocalDate startDate,
         LocalDate endDate,
         String type,
