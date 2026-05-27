@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 
 const links = [
-  { to: '/schedule',     label: 'Escalas' },
+  { to: '/schedule',     label: 'Horários' },
   { to: '/availability', label: 'Disponibilidade' },
   { to: '/employees',    label: 'Funcionários' },
   { to: '/holidays',     label: 'Feriados' },
