@@ -1,0 +1,3 @@
+ALTER TABLE employee ADD COLUMN phone TEXT;
+ALTER TABLE employee ADD COLUMN email TEXT;
+ALTER TABLE employee ADD COLUMN notes TEXT;
