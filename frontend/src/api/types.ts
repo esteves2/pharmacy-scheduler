@@ -6,6 +6,15 @@ export interface EmployeeDto {
   role: 'F' | 'T'
 }
 
+export interface EmployeeDetailDto {
+  id: number
+  name: string
+  role: 'F' | 'T'
+  phone: string | null
+  email: string | null
+  notes: string | null
+}
+
 // --- Schedule ---
 
 export type WeekStatus = 'DRAFT' | 'PUBLISHED'

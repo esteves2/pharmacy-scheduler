@@ -97,8 +97,9 @@ function ValidationPanel({ messages }: { messages: ValidationMessageResponse[] }
   const [open, setOpen] = useState(true)
   if (messages.length === 0) return null
 
-  const errors = messages.filter(m => m.severity === 'ERROR')
+  const errors   = messages.filter(m => m.severity === 'ERROR')
   const warnings = messages.filter(m => m.severity === 'WARNING')
+  const infos    = messages.filter(m => m.severity === 'INFO')
 
   return (
     <div className="mt-6 border border-gray-200 rounded-lg overflow-hidden">
@@ -116,6 +117,11 @@ function ValidationPanel({ messages }: { messages: ValidationMessageResponse[] }
           {warnings.length > 0 && (
             <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full">
               {warnings.length} aviso{warnings.length > 1 ? 's' : ''}
+            </span>
+          )}
+          {infos.length > 0 && (
+            <span className="ml-2 text-xs bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded-full">
+              {infos.length} nota{infos.length > 1 ? 's' : ''}
             </span>
           )}
         </span>
@@ -153,13 +159,28 @@ interface Props {
   error: string | null
   onBack: () => void
   onWeekDataChange: (data: WeekResponse) => void
+  onDeleted: () => void
 }
 
 export default function WeekView({
-  isoYear, isoWeek, weekData, loading, error, onBack, onWeekDataChange,
+  isoYear, isoWeek, weekData, loading, error, onBack, onWeekDataChange, onDeleted,
 }: Props) {
   const [actionLoading, setActionLoading] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+
+  const handleDelete = async () => {
+    if (!window.confirm('Apagar este rascunho? Esta acção não pode ser desfeita.')) return
+    setActionLoading(true)
+    setActionError(null)
+    try {
+      await scheduleApi.delete(isoYear, isoWeek)
+      onDeleted()
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : 'Erro desconhecido')
+    } finally {
+      setActionLoading(false)
+    }
+  }
 
   const runAction = async (fn: () => Promise<WeekResponse>) => {
     setActionLoading(true)
@@ -253,6 +274,15 @@ export default function WeekView({
             >
               Replanejar
             </button>
+            {weekData.status === 'DRAFT' && (
+              <button
+                disabled={actionLoading}
+                onClick={handleDelete}
+                className="ml-auto px-4 py-1.5 bg-white border border-red-300 text-red-600 text-sm font-medium rounded hover:bg-red-50 disabled:opacity-50"
+              >
+                Apagar rascunho
+              </button>
+            )}
           </>
         )}
       </div>

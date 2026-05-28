@@ -92,4 +92,12 @@ public class ScheduleController {
             @PathVariable int isoWeek) {
         return ResponseEntity.ok(scheduleService.replan(isoYear, isoWeek));
     }
+
+    @DeleteMapping("/{isoYear}/{isoWeek}")
+    public ResponseEntity<Void> delete(
+            @PathVariable int isoYear,
+            @PathVariable int isoWeek) {
+        scheduleService.delete(isoYear, isoWeek);
+        return ResponseEntity.noContent().build();
+    }
 }

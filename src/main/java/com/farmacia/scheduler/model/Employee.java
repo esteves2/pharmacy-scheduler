@@ -20,4 +20,10 @@ public class Employee {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    private String phone;
+
+    private String email;
+
+    private String notes;
 }

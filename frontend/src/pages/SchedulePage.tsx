@@ -75,6 +75,7 @@ export default function SchedulePage() {
         error={error}
         onBack={closeWeek}
         onWeekDataChange={handleWeekDataChange}
+        onDeleted={closeWeek}
       />
     )
   }

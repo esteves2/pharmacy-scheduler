@@ -322,6 +322,19 @@ public class ScheduleService {
         return buildWeekResponse(week);
     }
 
+    @Transactional
+    public void delete(int isoYear, int isoWeek) {
+        ScheduleWeek week = scheduleWeekRepository.findByIsoYearAndIsoWeek(isoYear, isoWeek)
+                .orElseThrow(() -> new ScheduleNotFoundException(
+                        "No schedule found for ISO year %d week %d".formatted(isoYear, isoWeek)));
+        if (week.getStatus() == WeekStatus.PUBLISHED) {
+            throw new ScheduleAlreadyPublishedException(
+                    "Cannot delete a published schedule for ISO year %d week %d".formatted(isoYear, isoWeek));
+        }
+        shiftAssignmentRepository.deleteByScheduleWeekId(week.getId());
+        scheduleWeekRepository.delete(week);
+    }
+
     private WeekResponse buildWeekResponse(ScheduleWeek week) {
         int isoYear = week.getIsoYear();
         int isoWeek = week.getIsoWeek();

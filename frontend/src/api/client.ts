@@ -3,6 +3,7 @@ import type {
   WeekResponse,
   WeekWriteRequest,
   EmployeeDto,
+  EmployeeDetailDto,
   AbsenceResponse,
   AbsenceRequest,
   HolidayResponse,
@@ -48,19 +49,22 @@ export const scheduleApi = {
 
   replan: (isoYear: number, isoWeek: number) =>
     request<WeekResponse>(`/api/schedules/weeks/${isoYear}/${isoWeek}/replan`, { method: 'POST' }),
+
+  delete: (isoYear: number, isoWeek: number) =>
+    request<void>(`/api/schedules/weeks/${isoYear}/${isoWeek}`, { method: 'DELETE' }),
 }
 
 // --- Employees ---
 
 export const employeeApi = {
   list: () =>
-    request<EmployeeDto[]>('/api/employees'),
+    request<EmployeeDetailDto[]>('/api/employees'),
 
   get: (id: number) =>
-    request<EmployeeDto>(`/api/employees/${id}`),
+    request<EmployeeDetailDto>(`/api/employees/${id}`),
 
-  update: (id: number, body: EmployeeDto) =>
-    request<EmployeeDto>(`/api/employees/${id}`, {
+  update: (id: number, body: EmployeeDetailDto) =>
+    request<EmployeeDetailDto>(`/api/employees/${id}`, {
       method: 'PUT',
       body: JSON.stringify(body),
     }),

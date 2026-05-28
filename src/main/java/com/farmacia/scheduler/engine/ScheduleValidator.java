@@ -2,9 +2,9 @@ package com.farmacia.scheduler.engine;
 
 import com.farmacia.scheduler.engine.model.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ScheduleValidator {
 
@@ -38,7 +38,42 @@ public class ScheduleValidator {
             }
         }
 
-        return messages;
+        return consolidate(messages);
+    }
+
+    /**
+     * Collapses duplicate messages (same severity + text) into a single entry.
+     * Repeated issues across multiple days are noted once with a count and date list.
+     */
+    private List<ValidationMessage> consolidate(List<ValidationMessage> raw) {
+        // Preserve insertion order; key = severity + message text
+        Map<String, List<ValidationMessage>> groups = new LinkedHashMap<>();
+        for (ValidationMessage m : raw) {
+            String key = m.getSeverity() + "|" + m.getMessage();
+            groups.computeIfAbsent(key, k -> new ArrayList<>()).add(m);
+        }
+
+        List<ValidationMessage> result = new ArrayList<>();
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("d/MM");
+
+        for (List<ValidationMessage> group : groups.values()) {
+            if (group.size() == 1) {
+                result.add(group.get(0));
+            } else {
+                ValidationMessage first = group.get(0);
+                List<String> dates = group.stream()
+                        .filter(m -> m.getDate() != null)
+                        .map(m -> m.getDate().format(fmt))
+                        .distinct()
+                        .sorted()
+                        .collect(Collectors.toList());
+                String suffix = dates.isEmpty()
+                        ? " [×" + group.size() + "]"
+                        : " [×" + group.size() + " — " + String.join(", ", dates) + "]";
+                result.add(new ValidationMessage(first.getSeverity(), null, null, first.getMessage() + suffix));
+            }
+        }
+        return result;
     }
 
     private void validateDay(DayPlan day, List<ValidationMessage> messages) {
@@ -59,7 +94,7 @@ public class ScheduleValidator {
                 messages.add(ValidationMessage.error(day.getDate(), hour,
                         "Headcount below minimum (" + headcount + " < " + minimum + ")"));
             } else if (headcount < target) {
-                messages.add(ValidationMessage.warning(day.getDate(), hour,
+                messages.add(ValidationMessage.info(day.getDate(), hour,
                         "Headcount below target (" + headcount + " < " + target + ")"));
             }
         }

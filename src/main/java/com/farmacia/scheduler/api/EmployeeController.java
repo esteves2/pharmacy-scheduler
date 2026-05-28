@@ -1,6 +1,6 @@
 package com.farmacia.scheduler.api;
 
-import com.farmacia.scheduler.api.dto.EmployeeDto;
+import com.farmacia.scheduler.api.dto.EmployeeDetailDto;
 import com.farmacia.scheduler.model.Employee;
 import com.farmacia.scheduler.model.Role;
 import com.farmacia.scheduler.repository.EmployeeRepository;
@@ -22,27 +22,34 @@ public class EmployeeController {
     }
 
     @GetMapping
-    public List<EmployeeDto> list() {
+    public List<EmployeeDetailDto> list() {
         return employeeRepository.findAll().stream()
                 .sorted(Comparator.comparing(Employee::getId))
-                .map(e -> new EmployeeDto(e.getId(), e.getName(), e.getRole().name()))
+                .map(this::toDetail)
                 .toList();
     }
 
     @GetMapping("/{id}")
-    public EmployeeDto get(@PathVariable Long id) {
-        Employee emp = employeeRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee %d not found".formatted(id)));
-        return new EmployeeDto(emp.getId(), emp.getName(), emp.getRole().name());
+    public EmployeeDetailDto get(@PathVariable Long id) {
+        return toDetail(employeeRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee %d not found".formatted(id))));
     }
 
     @PutMapping("/{id}")
-    public EmployeeDto update(@PathVariable Long id, @RequestBody EmployeeDto request) {
+    public EmployeeDetailDto update(@PathVariable Long id, @RequestBody EmployeeDetailDto request) {
         Employee emp = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee %d not found".formatted(id)));
         emp.setName(request.name());
         emp.setRole(Role.valueOf(request.role()));
-        Employee saved = employeeRepository.save(emp);
-        return new EmployeeDto(saved.getId(), saved.getName(), saved.getRole().name());
+        emp.setPhone(request.phone());
+        emp.setEmail(request.email());
+        emp.setNotes(request.notes());
+        return toDetail(employeeRepository.save(emp));
+    }
+
+    private EmployeeDetailDto toDetail(Employee emp) {
+        return new EmployeeDetailDto(
+                emp.getId(), emp.getName(), emp.getRole().name(),
+                emp.getPhone(), emp.getEmail(), emp.getNotes());
     }
 }

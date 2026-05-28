@@ -20,4 +20,8 @@ public class ValidationMessage {
     public static ValidationMessage warning(LocalDate date, Integer hour, String message) {
         return new ValidationMessage(Severity.WARNING, date, hour, message);
     }
+
+    public static ValidationMessage info(LocalDate date, Integer hour, String message) {
+        return new ValidationMessage(Severity.INFO, date, hour, message);
+    }
 }
