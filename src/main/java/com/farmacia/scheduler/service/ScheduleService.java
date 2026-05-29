@@ -9,7 +9,6 @@ import com.farmacia.scheduler.model.*;
 import com.farmacia.scheduler.repository.*;
 import com.farmacia.scheduler.service.exception.ScheduleAlreadyExistsException;
 import com.farmacia.scheduler.service.exception.ScheduleAlreadyPublishedException;
-import com.farmacia.scheduler.service.exception.ScheduleHasValidationErrorsException;
 import com.farmacia.scheduler.service.exception.ScheduleNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -194,14 +193,7 @@ public class ScheduleService {
             }
         }
 
-        List<ValidationMessage> messages = new ScheduleValidator().validate(days, accumulator, idToName, absenceCredits);
-        List<ValidationMessage> errors = messages.stream()
-                .filter(m -> m.getSeverity() == Severity.ERROR)
-                .toList();
-        if (!errors.isEmpty()) {
-            throw new ScheduleHasValidationErrorsException(errors);
-        }
-
+        new ScheduleValidator().validate(days, accumulator, idToName, absenceCredits);
         week.setStatus(WeekStatus.PUBLISHED);
         week.setPublishedAt(LocalDateTime.now());
         ScheduleWeek saved = scheduleWeekRepository.save(week);
@@ -316,7 +308,7 @@ public class ScheduleService {
         }
         shiftAssignmentRepository.saveAll(newAssignments);
 
-        week.setStatus(WeekStatus.DRAFT);
+        // Keep the existing status — replanning a published schedule stays published
         week.setLastEditedAt(LocalDateTime.now());
         scheduleWeekRepository.save(week);
         return buildWeekResponse(week);
@@ -327,10 +319,6 @@ public class ScheduleService {
         ScheduleWeek week = scheduleWeekRepository.findByIsoYearAndIsoWeek(isoYear, isoWeek)
                 .orElseThrow(() -> new ScheduleNotFoundException(
                         "No schedule found for ISO year %d week %d".formatted(isoYear, isoWeek)));
-        if (week.getStatus() == WeekStatus.PUBLISHED) {
-            throw new ScheduleAlreadyPublishedException(
-                    "Cannot delete a published schedule for ISO year %d week %d".formatted(isoYear, isoWeek));
-        }
         shiftAssignmentRepository.deleteByScheduleWeekId(week.getId());
         scheduleWeekRepository.delete(week);
     }

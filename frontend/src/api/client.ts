@@ -2,7 +2,6 @@ import type {
   WeekSummaryResponse,
   WeekResponse,
   WeekWriteRequest,
-  EmployeeDto,
   EmployeeDetailDto,
   AbsenceResponse,
   AbsenceRequest,

@@ -27,14 +27,14 @@ public class ScheduleValidator {
             long employeeId = entry.getKey();
             double worked = entry.getValue();
             double effective = worked + absenceCredits.getOrDefault(employeeId, 0.0);
-            String name = idToName.getOrDefault(employeeId, "Employee " + employeeId);
+            String name = idToName.getOrDefault(employeeId, "Funcionário " + employeeId);
 
             if (worked > WEEKLY_HOURS_UPPER) {
                 messages.add(ValidationMessage.error(null, null,
-                        name + " exceeds " + (int) WEEKLY_HOURS_UPPER + "h (" + worked + "h)"));
+                        name + " ultrapassa " + (int) WEEKLY_HOURS_UPPER + "h (" + worked + "h)"));
             } else if (effective < WEEKLY_HOURS_LOWER) {
                 messages.add(ValidationMessage.warning(null, null,
-                        name + " below " + (int) WEEKLY_HOURS_LOWER + "h (" + effective + "h effective)"));
+                        name + " abaixo de " + (int) WEEKLY_HOURS_LOWER + "h (" + effective + "h efectivas)"));
             }
         }
 
@@ -58,9 +58,9 @@ public class ScheduleValidator {
 
         for (List<ValidationMessage> group : groups.values()) {
             if (group.size() == 1) {
-                result.add(group.get(0));
+                result.add(group.getFirst());
             } else {
-                ValidationMessage first = group.get(0);
+                ValidationMessage first = group.getFirst();
                 List<String> dates = group.stream()
                         .filter(m -> m.getDate() != null)
                         .map(m -> m.getDate().format(fmt))
@@ -77,7 +77,7 @@ public class ScheduleValidator {
     }
 
     private void validateDay(DayPlan day, List<ValidationMessage> messages) {
-        int openHour = openHour(day.getDayType());
+        int openHour = openHour();
         int closeHour = closeHour(day.getDayType());
 
         for (int hour = openHour; hour < closeHour; hour++) {
@@ -88,19 +88,19 @@ public class ScheduleValidator {
 
             if (farmaceuticas == 0) {
                 messages.add(ValidationMessage.error(day.getDate(), hour,
-                        "No farmacêutica present"));
+                        "Nenhuma farmacêutica presente"));
             }
             if (headcount < minimum) {
                 messages.add(ValidationMessage.error(day.getDate(), hour,
-                        "Headcount below minimum (" + headcount + " < " + minimum + ")"));
+                        "Equipa abaixo do mínimo (" + headcount + " < " + minimum + ")"));
             } else if (headcount < target) {
                 messages.add(ValidationMessage.info(day.getDate(), hour,
-                        "Headcount below target (" + headcount + " < " + target + ")"));
+                        "Equipa abaixo do objectivo (" + headcount + " < " + target + ")"));
             }
         }
     }
 
-    private int openHour(DayType dayType) {
+    private int openHour() {
         return 8;
     }
 

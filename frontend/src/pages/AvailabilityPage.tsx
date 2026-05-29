@@ -9,24 +9,24 @@ const MONTH_NAMES = [
 ]
 
 const ABSENCE_COLORS: Record<AbsenceType, string> = {
-  FERIAS:    'bg-blue-400',
-  DOENCA:    'bg-red-400',
-  MATERNITY: 'bg-purple-400',
+  FERIAS:    'bg-green-400',
+  SICK:      'bg-red-400',
+  MATERNITY: 'bg-pink-400',
   FOLGA:     'bg-slate-400',
   OTHER:     'bg-orange-400',
 }
 
 const ABSENCE_LABELS: Record<AbsenceType, string> = {
   FERIAS:    'Férias',
-  DOENCA:    'Doença',
+  SICK:      'Doença',
   MATERNITY: 'Maternidade',
   FOLGA:     'Folga',
   OTHER:     'Outro',
 }
 
-const CELL_W = 36     // px per day column
-const NAME_W = 160    // px for the sticky name column
-const ROW_H  = 44     // px per employee row
+const CELL_W = 36
+const NAME_W = 160
+const ROW_H  = 44
 const TODAY  = new Date().toISOString().slice(0, 10)
 
 function monthDays(year: number, month: number): string[] {
@@ -53,10 +53,10 @@ function clamp(val: string, min: string, max: string) {
 interface BarProps {
   absence: AbsenceResponse
   days: string[]
-  onDelete: (absence: AbsenceResponse) => void
+  onDeleteRequest: (absence: AbsenceResponse) => void
 }
 
-function AbsenceBar({ absence, days, onDelete }: BarProps) {
+function AbsenceBar({ absence, days, onDeleteRequest }: BarProps) {
   const first = days[0]
   const last  = days[days.length - 1]
 
@@ -72,10 +72,7 @@ function AbsenceBar({ absence, days, onDelete }: BarProps) {
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    const label = ABSENCE_LABELS[absence.type]
-    if (window.confirm(`Remover ${label} de ${absence.employee.name} (${absence.startDate} – ${absence.endDate})?`)) {
-      onDelete(absence)
-    }
+    onDeleteRequest(absence)
   }
 
   return (
@@ -85,9 +82,11 @@ function AbsenceBar({ absence, days, onDelete }: BarProps) {
       style={{ left, width, top: '50%', transform: 'translateY(-50%)', height: 26 }}
       className={`absolute ${ABSENCE_COLORS[absence.type]} rounded-full flex items-center px-3 cursor-pointer hover:brightness-95 transition-all overflow-hidden z-10`}
     >
-      <span className="text-white text-xs font-medium truncate select-none">
-        {ABSENCE_LABELS[absence.type]}
-      </span>
+      {width >= 60 && (
+        <span className="text-white text-xs font-medium truncate select-none">
+          {ABSENCE_LABELS[absence.type]}
+        </span>
+      )}
     </div>
   )
 }
@@ -99,13 +98,14 @@ interface ModalState {
 
 export default function AvailabilityPage() {
   const today = new Date()
-  const [year, setYear]         = useState(today.getFullYear())
-  const [month, setMonth]       = useState(today.getMonth() + 1)
+  const [year, setYear]           = useState(today.getFullYear())
+  const [month, setMonth]         = useState(today.getMonth() + 1)
   const [employees, setEmployees] = useState<EmployeeDetailDto[]>([])
   const [absences, setAbsences]   = useState<AbsenceResponse[]>([])
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState<string | null>(null)
   const [modal, setModal]         = useState<ModalState | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<AbsenceResponse | null>(null)
 
   const prev = () => month === 1 ? (setYear(y => y - 1), setMonth(12)) : setMonth(m => m - 1)
   const next = () => month === 12 ? (setYear(y => y + 1), setMonth(1)) : setMonth(m => m + 1)
@@ -130,8 +130,9 @@ export default function AvailabilityPage() {
 
   useEffect(() => { load() }, [load])
 
-  const handleDelete = (absence: AbsenceResponse) => {
-    absenceApi.delete(absence.id).then(load).catch(e => setError(String(e)))
+  const handleDeleteConfirmed = () => {
+    if (!deleteConfirm) return
+    absenceApi.delete(deleteConfirm.id).then(() => { setDeleteConfirm(null); load() }).catch(e => setError(String(e)))
   }
 
   const handleCellClick = (employee: EmployeeDetailDto, date: string) => {
@@ -154,9 +155,35 @@ export default function AvailabilityPage() {
   const days = monthDays(year, month)
   const totalGridW = days.length * CELL_W
 
-  // Group absences by employee
+  function mergeAbsences(raw: AbsenceResponse[]): AbsenceResponse[] {
+    const groups: Record<string, AbsenceResponse[]> = {}
+    for (const a of raw) {
+      const key = `${a.employee.id}|${a.type}`
+      ;(groups[key] ??= []).push(a)
+    }
+    const merged: AbsenceResponse[] = []
+    for (const group of Object.values(groups)) {
+      const sorted = [...group].sort((a, b) => a.startDate.localeCompare(b.startDate))
+      let current = { ...sorted[0] }
+      for (let i = 1; i < sorted.length; i++) {
+        const next = sorted[i]
+        const endPlus1 = new Date(current.endDate + 'T00:00:00')
+        endPlus1.setDate(endPlus1.getDate() + 1)
+        const endPlus1Str = `${endPlus1.getFullYear()}-${String(endPlus1.getMonth()+1).padStart(2,'0')}-${String(endPlus1.getDate()).padStart(2,'0')}`
+        if (next.startDate <= endPlus1Str) {
+          if (next.endDate > current.endDate) current = { ...current, endDate: next.endDate }
+        } else {
+          merged.push(current)
+          current = { ...next }
+        }
+      }
+      merged.push(current)
+    }
+    return merged
+  }
+
   const absencesByEmployee: Record<number, AbsenceResponse[]> = {}
-  for (const a of absences) {
+  for (const a of mergeAbsences(absences)) {
     ;(absencesByEmployee[a.employee.id] ??= []).push(a)
   }
 
@@ -217,7 +244,6 @@ export default function AvailabilityPage() {
             return (
               <div key={emp.id} className="flex border-b border-gray-100 last:border-b-0"
                 style={{ minWidth: NAME_W + totalGridW }}>
-                {/* Name */}
                 <div className="shrink-0 border-r border-gray-200 px-4 flex flex-col justify-center"
                   style={{ width: NAME_W, height: ROW_H }}>
                   <div className="text-sm font-medium text-gray-800">{emp.name}</div>
@@ -226,9 +252,7 @@ export default function AvailabilityPage() {
                   </div>
                 </div>
 
-                {/* Grid area */}
                 <div className="relative" style={{ width: totalGridW, height: ROW_H }}>
-                  {/* Clickable day cells (background) */}
                   <div className="absolute inset-0 flex">
                     {days.map(d => (
                       <div
@@ -241,13 +265,12 @@ export default function AvailabilityPage() {
                     ))}
                   </div>
 
-                  {/* Absence bars */}
                   {empAbsences.map(absence => (
                     <AbsenceBar
                       key={absence.id}
                       absence={absence}
                       days={days}
-                      onDelete={handleDelete}
+                      onDeleteRequest={setDeleteConfirm}
                     />
                   ))}
                 </div>
@@ -265,6 +288,41 @@ export default function AvailabilityPage() {
           onConfirm={handleModalConfirm}
           onCancel={() => setModal(null)}
         />
+      )}
+
+      {/* Delete confirmation */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"
+          onClick={() => setDeleteConfirm(null)}>
+          <div className="bg-white rounded-xl shadow-xl p-6 w-80 flex flex-col gap-4"
+            onClick={e => e.stopPropagation()}>
+            <div>
+              <p className="text-sm font-semibold text-gray-800 mb-1">Remover ausência</p>
+              <p className="text-sm text-gray-500">
+                <span className="font-medium text-gray-700">{deleteConfirm.employee.name}</span>
+                {' · '}
+                <span>{ABSENCE_LABELS[deleteConfirm.type]}</span>
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {deleteConfirm.startDate === deleteConfirm.endDate
+                  ? deleteConfirm.startDate
+                  : `${deleteConfirm.startDate} – ${deleteConfirm.endDate}`}
+              </p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="px-4 py-1.5 text-sm rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteConfirmed}
+                className="px-4 py-1.5 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600">
+                Remover
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

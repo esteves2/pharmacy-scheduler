@@ -3,7 +3,7 @@ import type { AbsenceType, EmployeeDto } from '../../api/types'
 
 const ABSENCE_TYPES: { value: AbsenceType; label: string }[] = [
   { value: 'FERIAS',    label: 'Férias' },
-  { value: 'DOENCA',    label: 'Doença' },
+  { value: 'SICK',    label: 'Doença' },
   { value: 'MATERNITY', label: 'Maternidade' },
   { value: 'FOLGA',     label: 'Folga' },
   { value: 'OTHER',     label: 'Outro' },

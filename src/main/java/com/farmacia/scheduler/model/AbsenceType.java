@@ -1,3 +1,3 @@
 package com.farmacia.scheduler.model;
 
-public enum AbsenceType { FERIAS, FOLGA, SICK, MATERNITY }
+public enum AbsenceType { FERIAS, FOLGA, SICK, MATERNITY, OTHER }

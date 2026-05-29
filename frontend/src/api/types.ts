@@ -88,7 +88,7 @@ export interface WeekWriteRequest {
 
 // --- Absences ---
 
-export type AbsenceType = 'FERIAS' | 'DOENCA' | 'MATERNITY' | 'FOLGA' | 'OTHER'
+export type AbsenceType = 'FERIAS' | 'SICK' | 'MATERNITY' | 'FOLGA' | 'OTHER'
 
 export interface AbsenceResponse {
   id: number
