@@ -110,7 +110,7 @@ export default function MonthView({
                   const isToday = dateStr === TODAY
                   return (
                     <div key={dateStr} className="text-center">
-                      <span className={`text-xl w-10 h-10 inline-flex items-center justify-center rounded-full
+                      <span className={`text-lg w-9 h-9 inline-flex items-center justify-center rounded-full
                         ${isToday ? 'bg-brand text-white font-semibold' : ''}
                         ${!isToday && inMonth ? 'text-gray-800' : ''}
                         ${!isToday && !inMonth ? 'text-gray-300' : ''}
