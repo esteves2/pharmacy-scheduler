@@ -308,7 +308,8 @@ public class ScheduleService {
         }
         shiftAssignmentRepository.saveAll(newAssignments);
 
-        // Keep the existing status — replanning a published schedule stays published
+        // Replan always drops back to DRAFT — the published schedule has changed and needs review
+        week.setStatus(WeekStatus.DRAFT);
         week.setLastEditedAt(LocalDateTime.now());
         scheduleWeekRepository.save(week);
         return buildWeekResponse(week);
