@@ -49,10 +49,11 @@ function computeHours(start: string, end: string, bStart: string | null, bEnd: s
 const DAY_LABELS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom']
 
 const ABSENCE_STYLES: Record<AbsenceType, { cell: string; label: string; text: string }> = {
-  MATERNITY: { cell: 'bg-pink-50',   label: 'Maternidade', text: 'text-pink-300' },
-  SICK:      { cell: 'bg-red-50',    label: 'Doença',      text: 'text-red-300'  },
-  FERIAS:    { cell: 'bg-green-50',  label: 'Férias',      text: 'text-green-400'},
-  FOLGA:     { cell: 'bg-gray-100',  label: 'Folga',       text: 'text-gray-300' },
+  MATERNITY: { cell: 'bg-pink-50',   label: 'Maternidade', text: 'text-pink-300'  },
+  SICK:      { cell: 'bg-red-50',    label: 'Doença',      text: 'text-red-300'   },
+  FERIAS:    { cell: 'bg-green-50',  label: 'Férias',      text: 'text-green-400' },
+  FOLGA:     { cell: 'bg-gray-100',  label: 'Folga',       text: 'text-gray-300'  },
+  BIRTHDAY:  { cell: 'bg-yellow-50', label: 'Aniversário', text: 'text-yellow-500'},
   OTHER:     { cell: 'bg-orange-50', label: 'Ausência',    text: 'text-orange-400'},
 }
 
@@ -70,7 +71,7 @@ function HoursBadge({ hours, status }: { hours: number; status: HourStatus }) {
 
 function RolePill({ role }: { role: string }) {
   return (
-    <span className={`text-xs px-1 rounded font-medium ${role === 'F' ? 'bg-blue-100 text-blue-700' : 'bg-teal-100 text-teal-700'}`}>
+    <span className={`text-xs px-1 rounded font-medium ${role === 'F' ? 'bg-brand-faint text-brand' : 'bg-teal-100 text-teal-700'}`}>
       {role}
     </span>
   )
@@ -134,7 +135,7 @@ function ValidationPanel({ messages }: { messages: ValidationMessageResponse[] }
             </span>
           )}
           {infos.length > 0 && (
-            <span className="ml-2 text-xs bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded-full">
+            <span className="ml-2 text-xs bg-brand-faint text-brand px-1.5 py-0.5 rounded-full">
               {infos.length} nota{infos.length > 1 ? 's' : ''}
             </span>
           )}
@@ -319,7 +320,7 @@ export default function WeekView({ isoYear, isoWeek, weekData, loading, error, o
   const hasErrors  = (weekData?.validationMessages ?? []).some(m => m.severity === 'ERROR')
 
   return (
-    <div className="p-8">
+    <div className="p-8 min-w-[800px]">
       <div className="flex items-center gap-4 mb-6">
         <button onClick={onBack} className="text-sm text-gray-500 hover:text-gray-700">← Voltar</button>
         <h1 className="text-lg font-semibold text-gray-800">{weekTitle}</h1>
@@ -334,7 +335,7 @@ export default function WeekView({ isoYear, isoWeek, weekData, loading, error, o
       <div className="flex items-center gap-2 mb-6">
         {!weekData && (
           <button disabled={actionLoading} onClick={() => runAction(() => scheduleApi.generate(isoYear, isoWeek))}
-            className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 disabled:opacity-50">
+            className="px-4 py-1.5 bg-brand text-white text-sm font-medium rounded hover:bg-brand-dark disabled:opacity-50">
             Gerar
           </button>
         )}
@@ -342,7 +343,7 @@ export default function WeekView({ isoYear, isoWeek, weekData, loading, error, o
           <>
             {isDirty && (
               <button disabled={actionLoading} onClick={handleSave}
-                className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 disabled:opacity-50">
+                className="px-4 py-1.5 bg-brand text-white text-sm font-medium rounded hover:bg-brand-dark disabled:opacity-50">
                 Guardar alteracoes
               </button>
             )}
@@ -386,40 +387,34 @@ export default function WeekView({ isoYear, isoWeek, weekData, loading, error, o
             <table className="text-sm border-collapse min-w-full">
               <thead>
                 <tr>
-                  <th className="border border-gray-200 px-3 py-2 text-left text-xs font-semibold text-gray-500 bg-gray-100 w-36">
-                    Funcionario
+                  <th className="border border-gray-200 px-3 py-2 text-left text-xs font-semibold text-gray-500 bg-gray-100 w-28">
+                    Data
                   </th>
-                  {dates.map((date, i) => {
-                    const dayType = dayTypeByDate[date]
-                    const bg = dayType === 'SATURDAY' ? 'bg-blue-50' : dayType === 'SUNDAY' ? 'bg-purple-50' : dayType === 'HOLIDAY' ? 'bg-orange-50' : 'bg-gray-100'
-                    return (
-                      <th key={date} className={`border border-gray-200 px-2 py-2 text-center min-w-[100px] ${bg}`}>
-                        <div className="text-xs font-semibold text-gray-700">{DAY_LABELS[i]}</div>
-                        <div className="text-xs text-gray-400">{formatDate(date)}</div>
-                        {dayType === 'HOLIDAY' && <div className="text-xs text-orange-500 font-medium">Feriado</div>}
-                      </th>
-                    )
-                  })}
-                  <th className="border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-gray-500 bg-gray-100 w-16">
-                    {isDirty ? <span title="Guarde para actualizar os totais">Total *</span> : 'Total'}
-                  </th>
+                  {employees.map(s => (
+                    <th key={s.employee.id} className="border border-gray-200 px-2 py-2 text-center min-w-[100px] bg-gray-100">
+                      <div className="text-xs font-semibold text-gray-700">{s.employee.name}</div>
+                      <RolePill role={s.employee.role} />
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {employees.map((s, empIdx) => {
-                  const rowBg = empIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                {dates.map((date, i) => {
+                  const dayType = dayTypeByDate[date]
+                  const bg = dayType === 'SATURDAY' ? 'bg-blue-50' : dayType === 'SUNDAY' ? 'bg-purple-50' : dayType === 'HOLIDAY' ? 'bg-orange-50' : 'bg-white'
                   return (
-                    <tr key={s.employee.id}>
-                      <td className={`border border-gray-200 px-3 py-2 ${rowBg}`}>
-                        <div className="text-xs font-semibold text-gray-700">{s.employee.name}</div>
-                        <RolePill role={s.employee.role} />
+                    <tr key={date}>
+                      <td className={`border border-gray-200 px-3 py-2 w-28 ${bg}`}>
+                        <div className="text-xs font-semibold text-gray-700">{DAY_LABELS[i]}</div>
+                        <div className="text-xs text-gray-400">{formatDate(date)}</div>
+                        {dayType === 'HOLIDAY' && <div className="text-xs text-orange-500 font-medium">Feriado</div>}
                       </td>
-                      {dates.map(date => {
-                        const mapKey  = `${date}|${s.employee.id}`
-                        const absKey  = `${s.employee.id}|${date}`
+                      {employees.map((s, empIdx) => {
+                        const mapKey = `${date}|${s.employee.id}`
+                        const absKey = `${s.employee.id}|${date}`
                         return (
                           <AssignmentCell
-                            key={date}
+                            key={s.employee.id}
                             assignment={mapKey in localMap ? localMap[mapKey] : null}
                             absence={absenceMap[absKey] ?? null}
                             editable={isEditable}
@@ -427,12 +422,19 @@ export default function WeekView({ isoYear, isoWeek, weekData, loading, error, o
                           />
                         )
                       })}
-                      <td className={`border border-gray-200 px-2 py-2 text-center ${rowBg}`}>
-                        <HoursBadge hours={s.weeklyHours} status={s.status} />
-                      </td>
                     </tr>
                   )
                 })}
+                <tr className="bg-gray-50">
+                  <td className="border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-500">
+                    {isDirty ? <span title="Guarde para actualizar os totais">Total *</span> : 'Total'}
+                  </td>
+                  {employees.map(s => (
+                    <td key={s.employee.id} className="border border-gray-200 px-2 py-2 text-center">
+                      <HoursBadge hours={s.weeklyHours} status={s.status} />
+                    </td>
+                  ))}
+                </tr>
               </tbody>
             </table>
           </div>
@@ -475,7 +477,7 @@ export default function WeekView({ isoYear, isoWeek, weekData, loading, error, o
               </ul>
               <div className="px-5 py-3 border-t border-gray-200 flex gap-2">
                 <button onClick={doSave}
-                  className="flex-1 bg-blue-600 text-white text-sm font-medium py-2 rounded hover:bg-blue-700">
+                  className="flex-1 bg-brand text-white text-sm font-medium py-2 rounded hover:bg-brand-dark">
                   Guardar mesmo assim
                 </button>
                 <button onClick={() => setSaveIssues(null)}
@@ -488,6 +490,7 @@ export default function WeekView({ isoYear, isoWeek, weekData, loading, error, o
         </>
       )}
 
+ 
       {showPublishConfirm && weekData && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"
           onClick={() => setShowPublishConfirm(false)}>

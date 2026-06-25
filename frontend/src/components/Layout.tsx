@@ -7,30 +7,32 @@ const links = [
   { to: '/holidays',     label: 'Feriados' },
 ]
 
+
 export default function Layout() {
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900">
-      <nav className="w-52 shrink-0 bg-white border-r border-gray-200 flex flex-col py-6 px-4 gap-1">
-        <span className="text-xs font-semibold uppercase tracking-widest text-gray-400 px-2 mb-3">
-          Farmácia Esperança
-        </span>
-        {links.map(({ to, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`
-            }
-          >
-            {label}
-          </NavLink>
-        ))}
+      <nav className="w-48 shrink-0 bg-brand-dark flex flex-col py-6 px-4 gap-1">
+        {/* Nav links */}
+        <div className="flex flex-col gap-0.5">
+          {links.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-brand text-white'
+                    : 'text-green-200 hover:bg-brand hover:text-white'
+                }`
+              }
+            >
+              {label}
+            </NavLink>
+          ))}
+        </div>
       </nav>
-      <main className="flex-1 overflow-auto">
+
+      <main className="flex-1 overflow-auto bg-gray-50">
         <Outlet />
       </main>
     </div>

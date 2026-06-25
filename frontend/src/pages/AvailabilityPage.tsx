@@ -13,6 +13,7 @@ const ABSENCE_COLORS: Record<AbsenceType, string> = {
   SICK:      'bg-red-400',
   MATERNITY: 'bg-pink-400',
   FOLGA:     'bg-slate-400',
+  BIRTHDAY:  'bg-yellow-400',
   OTHER:     'bg-orange-400',
 }
 
@@ -21,12 +22,11 @@ const ABSENCE_LABELS: Record<AbsenceType, string> = {
   SICK:      'Doença',
   MATERNITY: 'Maternidade',
   FOLGA:     'Folga',
+  BIRTHDAY:  'Aniversário',
   OTHER:     'Outro',
 }
 
-const CELL_W = 36
-const NAME_W = 160
-const ROW_H  = 44
+const NAME_W = 180
 const TODAY  = new Date().toISOString().slice(0, 10)
 
 function monthDays(year: number, month: number): string[] {
@@ -67,8 +67,9 @@ function AbsenceBar({ absence, days, onDeleteRequest }: BarProps) {
   const endIdx   = days.indexOf(visibleEnd)
   if (startIdx === -1 || endIdx === -1) return null
 
-  const left  = startIdx * CELL_W + 3
-  const width = (endIdx - startIdx + 1) * CELL_W - 6
+  const n = days.length
+  const leftPct  = (startIdx / n) * 100
+  const widthPct = ((endIdx - startIdx + 1) / n) * 100
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -79,14 +80,12 @@ function AbsenceBar({ absence, days, onDeleteRequest }: BarProps) {
     <div
       onClick={handleClick}
       title={`${ABSENCE_LABELS[absence.type]}${absence.note ? ` — ${absence.note}` : ''}\n${absence.startDate} – ${absence.endDate}`}
-      style={{ left, width, top: '50%', transform: 'translateY(-50%)', height: 26 }}
+      style={{ left: `calc(${leftPct}% + 3px)`, width: `calc(${widthPct}% - 6px)`, top: '50%', transform: 'translateY(-50%)', height: 34 }}
       className={`absolute ${ABSENCE_COLORS[absence.type]} rounded-full flex items-center px-3 cursor-pointer hover:brightness-95 transition-all overflow-hidden z-10`}
     >
-      {width >= 60 && (
-        <span className="text-white text-xs font-medium truncate select-none">
-          {ABSENCE_LABELS[absence.type]}
-        </span>
-      )}
+      <span className="text-white text-sm font-medium truncate select-none">
+        {ABSENCE_LABELS[absence.type]}
+      </span>
     </div>
   )
 }
@@ -153,7 +152,6 @@ export default function AvailabilityPage() {
   }
 
   const days = monthDays(year, month)
-  const totalGridW = days.length * CELL_W
 
   function mergeAbsences(raw: AbsenceResponse[]): AbsenceResponse[] {
     const groups: Record<string, AbsenceResponse[]> = {}
@@ -188,7 +186,7 @@ export default function AvailabilityPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-6 flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <button onClick={prev} className="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 text-gray-500 text-lg">‹</button>
@@ -197,11 +195,11 @@ export default function AvailabilityPage() {
       </div>
 
       {/* Legend */}
-      <div className="flex gap-4 mb-5">
+      <div className="flex gap-5 mb-5">
         {(Object.entries(ABSENCE_LABELS) as [AbsenceType, string][]).map(([type, label]) => (
-          <div key={type} className="flex items-center gap-1.5">
-            <div className={`w-3 h-3 rounded-full ${ABSENCE_COLORS[type]}`} />
-            <span className="text-xs text-gray-500">{label}</span>
+          <div key={type} className="flex items-center gap-2">
+            <div className={`w-3.5 h-3.5 rounded-full ${ABSENCE_COLORS[type]}`} />
+            <span className="text-sm text-gray-500">{label}</span>
           </div>
         ))}
       </div>
@@ -210,26 +208,25 @@ export default function AvailabilityPage() {
       {loading && <p className="text-sm text-gray-400">A carregar...</p>}
 
       {!loading && (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <div className="flex-1 rounded-lg border border-gray-200 bg-white shadow-sm flex flex-col overflow-hidden">
           {/* Day header */}
-          <div className="flex border-b border-gray-200 bg-gray-50" style={{ minWidth: NAME_W + totalGridW }}>
-            <div className="shrink-0 border-r border-gray-200 px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide"
+          <div className="flex border-b border-gray-200 bg-gray-50 shrink-0">
+            <div className="shrink-0 border-r border-gray-200 px-4 py-3 text-sm font-semibold text-gray-400 uppercase tracking-wide"
               style={{ width: NAME_W }}>
               Funcionário
             </div>
-            <div className="relative flex" style={{ width: totalGridW }}>
+            <div className="flex flex-1">
               {days.map(d => {
                 const day = new Date(d + 'T00:00:00')
                 const weekend = isWeekend(d)
                 const isToday = d === TODAY
                 return (
-                  <div key={d} style={{ width: CELL_W }}
-                    className={`shrink-0 py-1.5 text-center ${weekend ? 'bg-gray-100' : ''}`}>
-                    <div className={`text-xs font-semibold mx-auto w-6 h-6 flex items-center justify-center rounded-full
-                      ${isToday ? 'bg-blue-500 text-white' : weekend ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <div key={d} className={`flex-1 py-3 text-center ${weekend ? 'bg-gray-100' : ''}`}>
+                    <div className={`text-base font-semibold mx-auto w-9 h-9 flex items-center justify-center rounded-full
+                      ${isToday ? 'bg-brand text-white' : weekend ? 'text-gray-300' : 'text-gray-700'}`}>
                       {day.getDate()}
                     </div>
-                    <div className={`text-xs ${weekend ? 'text-gray-300' : 'text-gray-300'}`}>
+                    <div className="text-sm font-medium text-gray-300 mt-0.5">
                       {['D','S','T','Q','Q','S','S'][day.getDay()]}
                     </div>
                   </div>
@@ -239,44 +236,44 @@ export default function AvailabilityPage() {
           </div>
 
           {/* Employee rows */}
-          {employees.map(emp => {
-            const empAbsences = absencesByEmployee[emp.id] ?? []
-            return (
-              <div key={emp.id} className="flex border-b border-gray-100 last:border-b-0"
-                style={{ minWidth: NAME_W + totalGridW }}>
-                <div className="shrink-0 border-r border-gray-200 px-4 flex flex-col justify-center"
-                  style={{ width: NAME_W, height: ROW_H }}>
-                  <div className="text-sm font-medium text-gray-800">{emp.name}</div>
-                  <div className={`text-xs ${emp.role === 'F' ? 'text-blue-400' : 'text-teal-400'}`}>
-                    {emp.role === 'F' ? 'Farmacêutica' : 'Técnica'}
+          <div className="flex-1 flex flex-col">
+            {employees.map(emp => {
+              const empAbsences = absencesByEmployee[emp.id] ?? []
+              return (
+                <div key={emp.id} className="flex-1 flex border-b border-gray-100 last:border-b-0 min-h-0">
+                  <div className="shrink-0 border-r border-gray-200 px-4 flex flex-col justify-center"
+                    style={{ width: NAME_W }}>
+                    <div className="text-base font-medium text-gray-800">{emp.name}</div>
+                    <div className={`text-sm ${emp.role === 'F' ? 'text-brand-light' : 'text-teal-400'}`}>
+                      {emp.role === 'F' ? 'Farmacêutica' : 'Técnica'}
+                    </div>
                   </div>
-                </div>
 
-                <div className="relative" style={{ width: totalGridW, height: ROW_H }}>
-                  <div className="absolute inset-0 flex">
-                    {days.map(d => (
-                      <div
-                        key={d}
-                        style={{ width: CELL_W }}
-                        className={`shrink-0 h-full cursor-pointer hover:bg-blue-50 transition-colors
-                          ${isWeekend(d) ? 'bg-gray-50' : ''}`}
-                        onClick={() => handleCellClick(emp, d)}
+                  <div className="relative flex-1">
+                    <div className="absolute inset-0 flex">
+                      {days.map(d => (
+                        <div
+                          key={d}
+                          className={`flex-1 h-full cursor-pointer hover:bg-brand-faint transition-colors
+                            ${isWeekend(d) ? 'bg-gray-50' : ''}`}
+                          onClick={() => handleCellClick(emp, d)}
+                        />
+                      ))}
+                    </div>
+
+                    {empAbsences.map(absence => (
+                      <AbsenceBar
+                        key={absence.id}
+                        absence={absence}
+                        days={days}
+                        onDeleteRequest={setDeleteConfirm}
                       />
                     ))}
                   </div>
-
-                  {empAbsences.map(absence => (
-                    <AbsenceBar
-                      key={absence.id}
-                      absence={absence}
-                      days={days}
-                      onDeleteRequest={setDeleteConfirm}
-                    />
-                  ))}
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       )}
 

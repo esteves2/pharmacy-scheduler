@@ -13,6 +13,10 @@ export interface EmployeeDetailDto {
   phone: string | null
   email: string | null
   notes: string | null
+  birthday: string | null
+  holidaysUsed: number
+  holidaysRemaining: number
+  contractHours: number | null
 }
 
 // --- Schedule ---
@@ -88,7 +92,7 @@ export interface WeekWriteRequest {
 
 // --- Absences ---
 
-export type AbsenceType = 'FERIAS' | 'SICK' | 'MATERNITY' | 'FOLGA' | 'OTHER'
+export type AbsenceType = 'FERIAS' | 'SICK' | 'MATERNITY' | 'FOLGA' | 'BIRTHDAY' | 'OTHER'
 
 export interface AbsenceResponse {
   id: number

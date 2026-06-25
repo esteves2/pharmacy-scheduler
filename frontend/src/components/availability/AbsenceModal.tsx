@@ -3,9 +3,10 @@ import type { AbsenceType, EmployeeDto } from '../../api/types'
 
 const ABSENCE_TYPES: { value: AbsenceType; label: string }[] = [
   { value: 'FERIAS',    label: 'Férias' },
-  { value: 'SICK',    label: 'Doença' },
+  { value: 'SICK',      label: 'Doença' },
   { value: 'MATERNITY', label: 'Maternidade' },
   { value: 'FOLGA',     label: 'Folga' },
+  { value: 'BIRTHDAY',  label: 'Aniversário' },
   { value: 'OTHER',     label: 'Outro' },
 ]
 
@@ -42,7 +43,7 @@ export default function AbsenceModal({ employee, defaultStart, defaultEnd, onCon
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-400"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-brand"
                 required
               />
             </div>
@@ -53,7 +54,7 @@ export default function AbsenceModal({ employee, defaultStart, defaultEnd, onCon
                 value={endDate}
                 min={startDate}
                 onChange={e => setEndDate(e.target.value)}
-                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-400"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-brand"
                 required
               />
             </div>
@@ -64,7 +65,7 @@ export default function AbsenceModal({ employee, defaultStart, defaultEnd, onCon
             <select
               value={type}
               onChange={e => setType(e.target.value as AbsenceType)}
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-400"
+              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-brand"
             >
               {ABSENCE_TYPES.map(t => (
                 <option key={t.value} value={t.value}>{t.label}</option>
@@ -79,14 +80,14 @@ export default function AbsenceModal({ employee, defaultStart, defaultEnd, onCon
               value={note}
               onChange={e => setNote(e.target.value)}
               placeholder="Observação..."
-              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-blue-400"
+              className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-brand"
             />
           </div>
 
           <div className="flex gap-2 pt-1">
             <button
               type="submit"
-              className="flex-1 bg-blue-600 text-white text-sm font-medium py-2 rounded hover:bg-blue-700"
+              className="flex-1 bg-brand text-white text-sm font-medium py-2 rounded hover:bg-brand-dark"
             >
               Guardar
             </button>
