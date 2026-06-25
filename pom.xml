@@ -162,4 +162,77 @@
 		</plugins>
 	</build>
 
+	<profiles>
+		<profile>
+			<id>prod</id>
+			<build>
+				<plugins>
+					<!-- Step 1: Copy the fat JAR into a clean staging dir for jpackage -->
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-dependency-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>stage-jar</id>
+								<phase>verify</phase>
+								<goals><goal>copy</goal></goals>
+								<configuration>
+									<artifactItems>
+										<artifactItem>
+											<groupId>${project.groupId}</groupId>
+											<artifactId>${project.artifactId}</artifactId>
+											<version>${project.version}</version>
+											<destFileName>app.jar</destFileName>
+											<outputDirectory>${project.build.directory}/jpackage-input</outputDirectory>
+										</artifactItem>
+									</artifactItems>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+
+					<!-- Step 2: Run jpackage to produce the .msi installer -->
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>3.1.0</version>
+						<executions>
+							<execution>
+								<id>jpackage</id>
+								<phase>verify</phase>
+								<goals><goal>exec</goal></goals>
+								<configuration>
+									<executable>${java.home}/bin/jpackage</executable>
+									<arguments>
+										<argument>--input</argument>
+										<argument>${project.build.directory}/jpackage-input</argument>
+										<argument>--main-jar</argument>
+										<argument>app.jar</argument>
+										<argument>--name</argument>
+										<argument>Farmacia Scheduler</argument>
+										<argument>--app-version</argument>
+										<argument>1.0.0</argument>
+										<argument>--type</argument>
+										<argument>msi</argument>
+										<argument>--dest</argument>
+										<argument>${project.build.directory}/installer</argument>
+										<argument>--java-options</argument>
+										<argument>-Dapp.packaged=true</argument>
+										<argument>--icon</argument>
+										<argument>${project.basedir}/src/main/resources/icon.ico</argument>
+										<argument>--win-shortcut</argument>
+										<argument>--win-menu</argument>
+										<argument>--win-dir-chooser</argument>
+										<argument>--description</argument>
+										<argument>Farmácia Scheduler</argument>
+									</arguments>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 </project>

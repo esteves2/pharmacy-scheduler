@@ -11,10 +11,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class SpaController {
 
-    @GetMapping(value = {"/", "/{path:[^\\.]*}", "/{path:[^\\.]*}/**"})
+    @GetMapping(value = {"/", "/{path:[^\\.]*}"})
     public String forward(HttpServletRequest request) {
         String uri = request.getRequestURI();
-        // Let Spring MVC handle API and static asset requests normally
         if (uri.startsWith("/api/")) {
             return null;
         }
