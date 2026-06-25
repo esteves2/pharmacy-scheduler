@@ -1,0 +1,1 @@
+ALTER TABLE employee ADD COLUMN contract_hours INTEGER NOT NULL DEFAULT 40;

@@ -6,4 +6,8 @@ public record EmployeeDetailDto(
         String role,
         String phone,
         String email,
-        String notes) {}
+        String notes,
+        String birthday,
+        int holidaysUsed,
+        int holidaysRemaining,
+        Integer contractHours) {}
