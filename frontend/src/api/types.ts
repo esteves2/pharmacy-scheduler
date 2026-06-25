@@ -16,7 +16,6 @@ export interface EmployeeDetailDto {
   birthday: string | null
   holidaysUsed: number
   holidaysRemaining: number
-  contractHours: number | null
 }
 
 // --- Schedule ---

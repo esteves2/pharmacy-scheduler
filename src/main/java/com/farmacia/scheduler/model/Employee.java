@@ -29,6 +29,4 @@ public class Employee {
     private String notes;
 
     private LocalDate birthday;
-
-    private Integer contractHours;
 }

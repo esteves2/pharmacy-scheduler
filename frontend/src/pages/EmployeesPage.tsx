@@ -15,7 +15,6 @@ function SlideOver({ employee, onSave, onClose }: SlideOverProps) {
   const [email, setEmail]                 = useState(employee.email ?? '')
   const [notes, setNotes]                 = useState(employee.notes ?? '')
   const [birthday, setBirthday]           = useState(employee.birthday ?? '')
-  const [contractHours, setContractHours] = useState<number>(employee.contractHours ?? 40)
   const [saving, setSaving]               = useState(false)
   const [error, setError]                 = useState<string | null>(null)
 
@@ -32,7 +31,6 @@ function SlideOver({ employee, onSave, onClose }: SlideOverProps) {
         email: email.trim() || null,
         notes: notes.trim() || null,
         birthday: birthday.trim() || null,
-        contractHours,
       })
       onSave(updated)
     } catch (e) {
@@ -86,17 +84,6 @@ function SlideOver({ employee, onSave, onClose }: SlideOverProps) {
                   onChange={e => setBirthday(e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-brand"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Horas contratuais</label>
-                <select
-                  value={contractHours}
-                  onChange={e => setContractHours(Number(e.target.value))}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-brand"
-                >
-                  <option value={40}>40h (segunda a sexta)</option>
-                  <option value={37}>37h (rotação fins-de-semana)</option>
-                </select>
               </div>
             </div>
           </section>

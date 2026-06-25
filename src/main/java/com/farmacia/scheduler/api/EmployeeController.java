@@ -59,7 +59,6 @@ public class EmployeeController {
         emp.setEmail(request.email());
         emp.setNotes(request.notes());
         emp.setBirthday(request.birthday() != null ? LocalDate.parse(request.birthday()) : null);
-        emp.setContractHours(request.contractHours());
         Map<Long, Integer> holidaysUsedMap = computeHolidaysUsedThisYear();
         return toDetail(employeeRepository.save(emp), holidaysUsedMap.getOrDefault(id, 0));
     }
@@ -94,7 +93,6 @@ public class EmployeeController {
                 emp.getNotes(),
                 emp.getBirthday() != null ? emp.getBirthday().toString() : null,
                 holidaysUsed,
-                remaining,
-                emp.getContractHours());
+                remaining);
     }
 }

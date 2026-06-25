@@ -40,7 +40,8 @@
       "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); cd C:\\\\Users\\\\Martim\\\\IdeaProjects\\\\pharmacy-scheduler\\\\frontend; node C:\\\\Users\\\\Martim\\\\AppData\\\\Local\\\\Temp\\\\screenshot.mjs 2>&1)",
       "PowerShell(npm root *)",
       "PowerShell($env:PATH = [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) + \";\" + [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\); node C:\\\\Users\\\\Martim\\\\AppData\\\\Local\\\\Temp\\\\screenshot.mjs)",
-      "PowerShell(Test-NetConnection *)"
+      "PowerShell(Test-NetConnection *)",
+      "Bash(npm run *)"
     ]
   }
 }

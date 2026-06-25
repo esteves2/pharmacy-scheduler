@@ -9,5 +9,4 @@ public record EmployeeDetailDto(
         String notes,
         String birthday,
         int holidaysUsed,
-        int holidaysRemaining,
-        Integer contractHours) {}
+        int holidaysRemaining) {}
