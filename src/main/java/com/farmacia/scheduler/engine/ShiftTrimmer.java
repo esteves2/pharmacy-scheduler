@@ -112,7 +112,7 @@ public class ShiftTrimmer {
     private int minimumHeadcount(int hour, DayType dayType) {
         if (dayType != DayType.WEEKDAY) return 2;
         if (hour < 10) return 2;
-        if (hour < 19) return 3;
+        if (hour < 18) return 3;
         return 2;
     }
 }

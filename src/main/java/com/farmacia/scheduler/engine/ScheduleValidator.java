@@ -117,7 +117,7 @@ public class ScheduleValidator {
         }
         // WEEKDAY
         if (hour < 10) return 2;
-        if (hour < 19) return 3;
+        if (hour < 18) return 3;
         return 2;
     }
 
@@ -126,10 +126,10 @@ public class ScheduleValidator {
             return 2;
         }
         // WEEKDAY
-        if (hour < 9) return 2;
+        if (hour < 9)  return 2;
         if (hour < 10) return 3;
-        if (hour < 19) return 4;
-        if (hour < 21) return 3;
+        if (hour < 18) return 4;
+        if (hour < 19) return 3;
         return 2;
     }
 }
