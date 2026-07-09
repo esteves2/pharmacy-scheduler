@@ -38,6 +38,7 @@ public class ScheduleEngine {
         seedPriorWeeks(accumulator, priorAssignments);
 
         Set<Long> hadBreakShiftLastWeek = computeHadBreakShiftLastWeek(priorAssignments, monday);
+        Map<Long, Boolean> lastWeekendPattern = computeLastWeekendPattern(priorAssignments);
         Map<Integer, Long> slotOwnerForWeek = new HashMap<>();
         Map<Long, Integer> breaksThisWeek = new HashMap<>();
 
@@ -52,7 +53,7 @@ public class ScheduleEngine {
         Set<Long> absentSun = absentEmployeesOn(absences, sunday);
         List<DayPlan> weekendDays = weekendAssigner.assignWeekend(
                 saturday, sunday, employees, holidays, absentSat, absentSun, accumulator, messages,
-                effectiveLastWeekendWorked);
+                effectiveLastWeekendWorked, lastWeekendPattern);
 
         Map<Long, LocalDate> phase1bRotation = new HashMap<>(effectiveLastWeekendWorked);
         weekendDays.stream()
@@ -137,6 +138,7 @@ public class ScheduleEngine {
         }
 
         Set<Long> hadBreakShiftLastWeek = computeHadBreakShiftLastWeek(priorAssignments, monday);
+        Map<Long, Boolean> lastWeekendPattern = computeLastWeekendPattern(priorAssignments);
         // Seed slot owners from locked weekday assignments (past days of this week)
         Map<Integer, Long> slotOwnerForWeek = seedSlotOwners(lockedAssignments);
         Map<Long, Integer> breaksThisWeek = new HashMap<>();
@@ -170,7 +172,7 @@ public class ScheduleEngine {
             Set<Long> absentSun = absentEmployeesOn(absences, sunday);
             List<DayPlan> weekendDays = weekendAssigner.assignWeekend(
                     saturday, sunday, employees, holidays, absentSat, absentSun, accumulator, messages,
-                    effectiveLastWeekendWorked);
+                    effectiveLastWeekendWorked, lastWeekendPattern);
             weekendDays.forEach(d -> daysByDate.put(d.getDate(), d));
             weekendDays.stream()
                     .filter(d -> d.getDate().equals(saturday))
@@ -231,6 +233,22 @@ public class ScheduleEngine {
     /**
      * Computes which employees had a break shift in the ISO week immediately preceding {@code monday}.
      */
+    /** Last Saturday each employee worked: was it the morning (Pair A) side? Drives A<->B alternation. */
+    private Map<Long, Boolean> computeLastWeekendPattern(List<ShiftAssignment> prior) {
+        Map<Long, ShiftAssignment> lastSat = new HashMap<>();
+        for (ShiftAssignment a : prior) {
+            if (a.getDate().getDayOfWeek() != DayOfWeek.SATURDAY) continue;
+            ShiftAssignment cur = lastSat.get(a.getEmployeeId());
+            if (cur == null || a.getDate().isAfter(cur.getDate())) {
+                lastSat.put(a.getEmployeeId(), a);
+            }
+        }
+        Map<Long, Boolean> wasPairA = new HashMap<>();
+        lastSat.forEach((id, a) ->
+                wasPairA.put(id, LocalTime.parse(a.getStartTime()).getHour() < 12));
+        return wasPairA;
+    }
+
     private Set<Long> computeHadBreakShiftLastWeek(List<ShiftAssignment> priorAssignments, LocalDate monday) {
         LocalDate lastMonday = monday.minusWeeks(1);
         LocalDate lastSunday = monday.minusDays(1);

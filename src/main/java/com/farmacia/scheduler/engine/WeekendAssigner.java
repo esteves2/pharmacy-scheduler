@@ -20,7 +20,8 @@ public class WeekendAssigner {
             Set<Long> absentEmployeeIdsSun,
             WeekAccumulator accumulator,
             List<ValidationMessage> messages,
-            Map<Long, LocalDate> effectiveLastWeekendWorked) {
+            Map<Long, LocalDate> effectiveLastWeekendWorked,
+            Map<Long, Boolean> lastWeekendWasPairA) {
 
         boolean satIsHoliday = holidays.contains(saturday);
 
@@ -46,7 +47,7 @@ public class WeekendAssigner {
 
         if (picked.size() >= 2) {
             // Split into two pairs, each with at least 1 F
-            List<List<Employee>> pairs = formPairs(picked);
+            List<List<Employee>> pairs = formPairs(picked, lastWeekendWasPairA);
             assignPairToWeekend(pairs.get(0), satPlan, sunPlan, satIsHoliday, true, accumulator);
             if (pairs.size() > 1) {
                 assignPairToWeekend(pairs.get(1), satPlan, sunPlan, satIsHoliday, false, accumulator);
@@ -76,7 +77,8 @@ public class WeekendAssigner {
         DayPlan plan = new DayPlan(date, DayType.HOLIDAY);
 
         if (picked.size() >= 2) {
-            List<List<Employee>> pairs = formPairs(picked);
+            // Mid-week holidays don't cross-link Sat/Sun, so there's no A<->B to alternate.
+            List<List<Employee>> pairs = formPairs(picked, Map.of());
             assignHolidayPair(pairs.get(0), plan, true, accumulator);
             if (pairs.size() > 1) {
                 assignHolidayPair(pairs.get(1), plan, false, accumulator);
@@ -91,73 +93,87 @@ public class WeekendAssigner {
             List<ValidationMessage> messages,
             LocalDate date) {
 
-        List<Employee> farmaceuticas = available.stream()
-                .filter(emp -> emp.getRole() == Role.F)
-                .toList();
-
-        List<Employee> tecnicas = available.stream()
-                .filter(emp -> emp.getRole() == Role.T)
-                .toList();
-
-        if (farmaceuticas.isEmpty()) {
+        long fAvailable = available.stream().filter(emp -> emp.getRole() == Role.F).count();
+        if (fAvailable == 0) {
             messages.add(ValidationMessage.error(date, null,
                     "No farmacêuticas available for weekend/holiday"));
-        } else if (farmaceuticas.size() < 2) {
+        } else if (fAvailable < 2) {
             messages.add(ValidationMessage.warning(date, null,
                     "Only 1 farmacêutica available — one pair will lack F coverage"));
         }
 
-        // Take up to 2 F first to guarantee one per pair
-        int fCount = Math.min(2, farmaceuticas.size());
-        List<Employee> picked = new ArrayList<>(farmaceuticas.subList(0, fCount));
+        int target = ShiftTemplates.WEEKEND_WORKERS;
+        int minF = ShiftTemplates.WEEKEND_PAIRS * ShiftTemplates.REQUIRED_FARMACEUTICAS_PER_PAIR;
 
-        // Fill remaining spots from tecnicas, then extra farmaceuticas
-        int remaining = ShiftTemplates.WEEKEND_WORKERS - picked.size();
-        int tCount = Math.min(remaining, tecnicas.size());
-        picked.addAll(tecnicas.subList(0, tCount));
+        // Flat rotation: take the longest-waiting workers OVERALL, regardless of role
+        // ('available' is pre-sorted longest-since-last-weekend first). This lets the larger
+        // pharmacist pool keep pace with technicians — the real schedule runs 3F+1T about
+        // one weekend in five, which evens everyone to ~2 weekends/month. See decision 023.
+        List<Employee> picked = new ArrayList<>(available.subList(0, Math.min(target, available.size())));
 
-        remaining = ShiftTemplates.WEEKEND_WORKERS - picked.size();
-        if (remaining > 0 && farmaceuticas.size() > fCount) {
-            int extraF = Math.min(remaining, farmaceuticas.size() - fCount);
-            picked.addAll(farmaceuticas.subList(fCount, fCount + extraF));
+        // Guarantee the F floor (one per pair): swap the most-recently-worked técnicas out
+        // for the longest-waiting unpicked farmacêuticas until at least minF F's are in.
+        Set<Long> pickedIds = picked.stream().map(Employee::getId).collect(Collectors.toSet());
+        List<Employee> unpickedFs = available.stream()
+                .filter(emp -> emp.getRole() == Role.F && !pickedIds.contains(emp.getId()))
+                .toList();
+        long fInPicked = picked.stream().filter(emp -> emp.getRole() == Role.F).count();
+        int fi = 0;
+        for (int i = picked.size() - 1; i >= 0 && fInPicked < minF && fi < unpickedFs.size(); i--) {
+            if (picked.get(i).getRole() == Role.T) {
+                picked.set(i, unpickedFs.get(fi++));
+                fInPicked++;
+            }
         }
 
         return picked;
     }
 
-    private List<List<Employee>> formPairs(List<Employee> picked) {
-        List<Employee> fs = picked.stream()
-                .filter(emp -> emp.getRole() == Role.F)
-                .toList();
-        List<Employee> ts = picked.stream()
-                .filter(emp -> emp.getRole() == Role.T)
-                .toList();
-
+    private List<List<Employee>> formPairs(List<Employee> picked, Map<Long, Boolean> lastWeekendWasPairA) {
         List<Employee> pairA = new ArrayList<>();
         List<Employee> pairB = new ArrayList<>();
 
-        // Distribute F across pairs
-        if (!fs.isEmpty()) pairA.add(fs.get(0));
-        if (fs.size() >= 2) pairB.add(fs.get(1));
+        // One F anchors each pair (guarantees a pharmacist on both shifts). Honor the
+        // two anchors' A<->B flip when they want opposite sides; otherwise split arbitrarily.
+        List<Employee> fs = picked.stream().filter(emp -> emp.getRole() == Role.F).toList();
+        Employee fa = fs.isEmpty() ? null : fs.get(0);
+        Employee fb = fs.size() >= 2 ? fs.get(1) : null;
 
-        // Distribute remaining (T first, then extra F)
-        List<Employee> rest = new ArrayList<>(ts);
-        for (int i = 2; i < fs.size(); i++) {
-            rest.add(fs.get(i));
+        Set<Long> anchored = new HashSet<>();
+        if (fa != null && fb != null) {
+            if (wantsPairA(fa, lastWeekendWasPairA) && !wantsPairA(fb, lastWeekendWasPairA)) {
+                pairA.add(fa); pairB.add(fb);
+            } else if (!wantsPairA(fa, lastWeekendWasPairA) && wantsPairA(fb, lastWeekendWasPairA)) {
+                pairA.add(fb); pairB.add(fa);
+            } else {
+                pairA.add(fa); pairB.add(fb);
+            }
+            anchored.add(fa.getId());
+            anchored.add(fb.getId());
+        } else if (fa != null) {
+            pairA.add(fa);
+            anchored.add(fa.getId());
         }
 
-        for (Employee emp : rest) {
-            if (pairA.size() <= pairB.size()) {
-                pairA.add(emp);
-            } else {
-                pairB.add(emp);
-            }
+        // Distribute the remaining workers, honoring each one's flip where the pair has room.
+        for (Employee emp : picked) {
+            if (anchored.contains(emp.getId())) continue;
+            boolean wantA = wantsPairA(emp, lastWeekendWasPairA);
+            if (wantA && pairA.size() < 2) pairA.add(emp);
+            else if (!wantA && pairB.size() < 2) pairB.add(emp);
+            else if (pairA.size() < 2) pairA.add(emp);
+            else pairB.add(emp);
         }
 
         List<List<Employee>> pairs = new ArrayList<>();
         if (!pairA.isEmpty()) pairs.add(pairA);
         if (!pairB.isEmpty()) pairs.add(pairB);
         return pairs;
+    }
+
+    /** Each worker flips: opposite of last weekend's side. No history defaults to Pair A. */
+    private boolean wantsPairA(Employee emp, Map<Long, Boolean> lastWeekendWasPairA) {
+        return !lastWeekendWasPairA.getOrDefault(emp.getId(), false);
     }
 
     private void assignPairToWeekend(
