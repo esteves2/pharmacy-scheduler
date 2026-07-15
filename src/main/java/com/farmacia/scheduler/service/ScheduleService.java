@@ -89,9 +89,19 @@ public class ScheduleService {
                         ShiftAssignment::getDate,
                         (a, b) -> !a.isBefore(b) ? a : b));
 
+        // Holiday rotation history: last time each person worked a public holiday, over the
+        // past year (holidays are rare, so a 4-week window would miss them). Decision 024.
+        Set<LocalDate> pastHolidays = holidayRepository.findBetween(weekStart.minusYears(1), weekStart.minusDays(1))
+                .stream().map(PublicHoliday::getDate).collect(Collectors.toSet());
+        Map<Long, LocalDate> lastHolidayWorked = pastHolidays.isEmpty() ? Map.of()
+                : shiftAssignmentRepository.findByDateRange(weekStart.minusYears(1), weekStart.minusDays(1)).stream()
+                        .filter(a -> pastHolidays.contains(a.getDate()))
+                        .collect(Collectors.toMap(ShiftAssignment::getEmployeeId, ShiftAssignment::getDate,
+                                (a, b) -> a.isAfter(b) ? a : b));
+
         WeekResult result = scheduleEngine.generate(
                 isoYear, isoWeek, weekStart, employees, absences, holidays, priorAssignments,
-                effectiveLastWeekendWorked);
+                effectiveLastWeekendWorked, lastHolidayWorked);
 
         ScheduleWeek week = new ScheduleWeek();
         week.setIsoYear(isoYear);
@@ -235,9 +245,17 @@ public class ScheduleService {
                         ShiftAssignment::getDate,
                         (a, b) -> !a.isBefore(b) ? a : b));
 
+        Set<LocalDate> pastHolidays = holidayRepository.findBetween(monday.minusYears(1), monday.minusDays(1))
+                .stream().map(PublicHoliday::getDate).collect(Collectors.toSet());
+        Map<Long, LocalDate> lastHolidayWorked = pastHolidays.isEmpty() ? Map.of()
+                : shiftAssignmentRepository.findByDateRange(monday.minusYears(1), monday.minusDays(1)).stream()
+                        .filter(a -> pastHolidays.contains(a.getDate()))
+                        .collect(Collectors.toMap(ShiftAssignment::getEmployeeId, ShiftAssignment::getDate,
+                                (a, b) -> a.isAfter(b) ? a : b));
+
         WeekResult result = scheduleEngine.generate(
                 isoYear, isoWeek, monday, employees, absences, holidays, priorAssignments,
-                effectiveLastWeekendWorked);
+                effectiveLastWeekendWorked, lastHolidayWorked);
 
         List<ShiftAssignment> assignments = new ArrayList<>();
         for (DayPlan day : result.getDays()) {
@@ -293,10 +311,18 @@ public class ScheduleService {
                         ShiftAssignment::getDate,
                         (a, b) -> !a.isBefore(b) ? a : b)));
 
+        Set<LocalDate> pastHolidays = holidayRepository.findBetween(monday.minusYears(1), monday.minusDays(1))
+                .stream().map(PublicHoliday::getDate).collect(Collectors.toSet());
+        Map<Long, LocalDate> lastHolidayWorked = pastHolidays.isEmpty() ? Map.of()
+                : shiftAssignmentRepository.findByDateRange(monday.minusYears(1), monday.minusDays(1)).stream()
+                        .filter(a -> pastHolidays.contains(a.getDate()))
+                        .collect(Collectors.toMap(ShiftAssignment::getEmployeeId, ShiftAssignment::getDate,
+                                (a, b) -> a.isAfter(b) ? a : b));
+
         WeekResult result = scheduleEngine.replan(
                 isoYear, isoWeek, monday, replanFrom,
                 employees, absences, holidays, priorAssignments,
-                effectiveLastWeekendWorked, lockedAssignments);
+                effectiveLastWeekendWorked, lastHolidayWorked, lockedAssignments);
 
         // Persist only newly generated assignments (locked ones are already in the DB)
         List<ShiftAssignment> newAssignments = new ArrayList<>();

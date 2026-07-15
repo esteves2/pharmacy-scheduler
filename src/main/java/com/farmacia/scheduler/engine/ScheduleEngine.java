@@ -32,7 +32,8 @@ public class ScheduleEngine {
             List<EmployeeAbsence> absences,
             Set<LocalDate> holidays,
             List<ShiftAssignment> priorAssignments,
-            Map<Long, LocalDate> effectiveLastWeekendWorked) {
+            Map<Long, LocalDate> effectiveLastWeekendWorked,
+            Map<Long, LocalDate> lastHolidayWorked) {
 
         WeekAccumulator accumulator = new WeekAccumulator();
         seedPriorWeeks(accumulator, priorAssignments);
@@ -55,12 +56,10 @@ public class ScheduleEngine {
                 saturday, sunday, employees, holidays, absentSat, absentSun, accumulator, messages,
                 effectiveLastWeekendWorked, lastWeekendPattern);
 
-        Map<Long, LocalDate> phase1bRotation = new HashMap<>(effectiveLastWeekendWorked);
-        weekendDays.stream()
-                .filter(d -> d.getDate().equals(saturday))
-                .findFirst()
-                .ifPresent(satPlan -> satPlan.getAssignments()
-                        .forEach(slot -> phase1bRotation.put(slot.getEmployeeId(), saturday)));
+        // Holidays rotate on their OWN scoreboard, independent of weekends (decision 024):
+        // the feriado crew is whoever has gone longest without working a holiday. Working a
+        // weekend never affects this, and working a holiday never affects the weekend sort.
+        Map<Long, LocalDate> holidayRotation = new HashMap<>(lastHolidayWorked);
 
         // Phase 1c: Programmatic weekday folgas for everyone who worked the weekend.
         // No contract tiers — every weekend worker gets 2 compensating weekday folgas,
@@ -73,7 +72,7 @@ public class ScheduleEngine {
                 .filter(emp -> weekendWorkerIds.contains(emp.getId()))
                 .sorted(Comparator.comparingLong(Employee::getId))
                 .toList();
-        Map<LocalDate, Set<Long>> programmaticFolgas = computeFolgaDays(folgaWorkers, monday);
+        Map<LocalDate, Set<Long>> programmaticFolgas = computeFolgaDays(folgaWorkers, monday, holidays);
 
         // Phase 1b: Mid-week holidays (Mon-Fri only)
         Map<LocalDate, DayPlan> holidayPlans = new HashMap<>();
@@ -81,7 +80,9 @@ public class ScheduleEngine {
             if (holidays.contains(date)) {
                 Set<Long> absent = absentEmployeesOn(absences, date);
                 DayPlan plan = weekendAssigner.assignHoliday(
-                        date, employees, absent, accumulator, messages, phase1bRotation);
+                        date, employees, absent, accumulator, messages, holidayRotation);
+                LocalDate worked = date;
+                plan.getAssignments().forEach(slot -> holidayRotation.put(slot.getEmployeeId(), worked));
                 holidayPlans.put(date, plan);
             }
         }
@@ -126,6 +127,7 @@ public class ScheduleEngine {
             List<Employee> employees, List<EmployeeAbsence> absences,
             Set<LocalDate> holidays, List<ShiftAssignment> priorAssignments,
             Map<Long, LocalDate> effectiveLastWeekendWorked,
+            Map<Long, LocalDate> lastHolidayWorked,
             List<ShiftAssignment> lockedAssignments) {
 
         LocalDate saturday = monday.plusDays(5);
@@ -189,13 +191,18 @@ public class ScheduleEngine {
             daysByDate.put(sunday, sunPlan);
         }
 
-        // Phase 1b: mid-week holidays from today (Mon–Fri only)
+        // Phase 1b: mid-week holidays from today (Mon–Fri only). Holidays use their own
+        // rotation scoreboard, independent of weekends (decision 024). (The standalone-Sunday
+        // regen above stays on the weekend rotation, since it's a weekend day, not a feriado.)
+        Map<Long, LocalDate> holidayRotation = new HashMap<>(lastHolidayWorked);
         LocalDate fillFrom = today.isBefore(monday) ? monday : today;
         for (LocalDate date = fillFrom; !date.isAfter(monday.plusDays(4)); date = date.plusDays(1)) {
             if (!daysByDate.containsKey(date) && holidays.contains(date)) {
                 Set<Long> absent = absentEmployeesOn(absences, date);
                 DayPlan plan = weekendAssigner.assignHoliday(
-                        date, employees, absent, accumulator, messages, phase1bRotation);
+                        date, employees, absent, accumulator, messages, holidayRotation);
+                LocalDate worked = date;
+                plan.getAssignments().forEach(slot -> holidayRotation.put(slot.getEmployeeId(), worked));
                 daysByDate.put(date, plan);
             }
         }
@@ -359,15 +366,23 @@ public class ScheduleEngine {
      * No more than 2 workers will be absent on any single day.
      * Workers sorted by ID; first available consecutive pair (Mon-Tue through Thu-Fri) is used.
      */
-    private Map<LocalDate, Set<Long>> computeFolgaDays(List<Employee> folgaWorkers, LocalDate monday) {
+    private Map<LocalDate, Set<Long>> computeFolgaDays(
+            List<Employee> folgaWorkers, LocalDate monday, Set<LocalDate> holidays) {
         LocalDate[] weekdays = new LocalDate[5];
-        for (int i = 0; i < 5; i++) weekdays[i] = monday.plusDays(i);
+        boolean[] isHoliday = new boolean[5];
+        for (int i = 0; i < 5; i++) {
+            weekdays[i] = monday.plusDays(i);
+            isHoliday[i] = holidays.contains(weekdays[i]);
+        }
         int[] folgaCount = new int[5];
         Map<LocalDate, Set<Long>> result = new HashMap<>();
 
         for (Employee worker : folgaWorkers) {
             boolean assigned = false;
+            // Prefer two consecutive non-holiday days. Folgas never land on a holiday — a
+            // national holiday is a free day off, so the worker keeps both folgas. Decision 024.
             for (int i = 0; i <= 3 && !assigned; i++) {
+                if (isHoliday[i] || isHoliday[i + 1]) continue;
                 if (folgaCount[i] < 2 && folgaCount[i + 1] < 2) {
                     folgaCount[i]++;
                     folgaCount[i + 1]++;
@@ -376,7 +391,17 @@ public class ScheduleEngine {
                     assigned = true;
                 }
             }
-            // If no consecutive pair found (>4 workers with folgas), worker gets no folgas this week.
+            // Fallback: if a holiday split the week so no consecutive non-holiday pair fits,
+            // place two individual non-holiday days so the worker still gets both folgas.
+            if (!assigned) {
+                int placed = 0;
+                for (int i = 0; i < 5 && placed < 2; i++) {
+                    if (isHoliday[i] || folgaCount[i] >= 2) continue;
+                    folgaCount[i]++;
+                    result.computeIfAbsent(weekdays[i], d -> new HashSet<>()).add(worker.getId());
+                    placed++;
+                }
+            }
         }
         return result;
     }

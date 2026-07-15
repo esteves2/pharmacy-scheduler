@@ -43,3 +43,4 @@ src/main/resources/static/
 frontend/node/
 *.db
 ${app.db.path}
+/decisions/024-national-holidays.md
