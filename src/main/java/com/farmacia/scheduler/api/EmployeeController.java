@@ -27,7 +27,8 @@ public class EmployeeController {
     private final EmployeeRepository employeeRepository;
     private final AbsenceRepository absenceRepository;
 
-    public EmployeeController(EmployeeRepository employeeRepository, AbsenceRepository absenceRepository) {
+    public EmployeeController(EmployeeRepository employeeRepository,
+                             AbsenceRepository absenceRepository) {
         this.employeeRepository = employeeRepository;
         this.absenceRepository = absenceRepository;
     }
@@ -45,8 +46,7 @@ public class EmployeeController {
     public EmployeeDetailDto get(@PathVariable Long id) {
         Employee emp = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee %d not found".formatted(id)));
-        Map<Long, Integer> holidaysUsedMap = computeHolidaysUsedThisYear();
-        return toDetail(emp, holidaysUsedMap.getOrDefault(id, 0));
+        return toDetail(emp, computeHolidaysUsedThisYear().getOrDefault(id, 0));
     }
 
     @PutMapping("/{id}")
@@ -59,8 +59,8 @@ public class EmployeeController {
         emp.setEmail(request.email());
         emp.setNotes(request.notes());
         emp.setBirthday(request.birthday() != null ? LocalDate.parse(request.birthday()) : null);
-        Map<Long, Integer> holidaysUsedMap = computeHolidaysUsedThisYear();
-        return toDetail(employeeRepository.save(emp), holidaysUsedMap.getOrDefault(id, 0));
+        Employee saved = employeeRepository.save(emp);
+        return toDetail(saved, computeHolidaysUsedThisYear().getOrDefault(id, 0));
     }
 
     private Map<Long, Integer> computeHolidaysUsedThisYear() {

@@ -201,31 +201,33 @@ export default function EmployeesPage() {
         <p className="text-sm text-gray-400">A carregar...</p>
       ) : (
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-          {employees.map((emp, i) => (
-            <button
-              key={emp.id}
-              onClick={() => setEditing(emp)}
-              className={`w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors text-left ${i > 0 ? 'border-t border-gray-100' : ''}`}
-            >
-              <div className="flex flex-col gap-1">
-                <span className="text-base font-medium text-gray-800">{emp.name}</span>
-                {(emp.phone || emp.email) && (
-                  <span className="text-sm text-gray-400">{emp.phone ?? emp.email}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="text-xs text-gray-400">
-                  Férias: {emp.holidaysUsed}/22
-                </span>
-                {emp.notes && (
-                  <span className="text-sm text-gray-300" title={emp.notes}>📝</span>
-                )}
-                <span className={`text-sm px-3 py-1 rounded-full font-medium ${emp.role === 'F' ? 'bg-brand-faint text-brand' : 'bg-teal-100 text-teal-700'}`}>
-                  {emp.role === 'F' ? 'Farmacêutica' : 'Técnica'}
-                </span>
-              </div>
-            </button>
-          ))}
+          {employees.map((emp, i) => {
+            return (
+              <button
+                key={emp.id}
+                onClick={() => setEditing(emp)}
+                className={`w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors text-left ${i > 0 ? 'border-t border-gray-100' : ''}`}
+              >
+                <div className="flex flex-col gap-1">
+                  <span className="text-base font-medium text-gray-800">{emp.name}</span>
+                  {(emp.phone || emp.email) && (
+                    <span className="text-sm text-gray-400">{emp.phone ?? emp.email}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="text-xs text-gray-400">
+                    Férias: {emp.holidaysUsed}/22
+                  </span>
+                  {emp.notes && (
+                    <span className="text-sm text-gray-300" title={emp.notes}>📝</span>
+                  )}
+                  <span className={`text-sm px-3 py-1 rounded-full font-medium ${emp.role === 'F' ? 'bg-brand-faint text-brand' : 'bg-teal-100 text-teal-700'}`}>
+                    {emp.role === 'F' ? 'Farmacêutica' : 'Técnica'}
+                  </span>
+                </div>
+              </button>
+            )
+          })}
         </div>
       )}
 

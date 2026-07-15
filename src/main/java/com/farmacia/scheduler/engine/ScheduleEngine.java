@@ -144,6 +144,11 @@ public class ScheduleEngine {
         // Seed slot owners from locked weekday assignments (past days of this week)
         Map<Integer, Long> slotOwnerForWeek = seedSlotOwners(lockedAssignments);
         Map<Long, Integer> breaksThisWeek = new HashMap<>();
+        // Count lunch breaks already used in the locked (past) days, so the weekly cap of 2
+        // spans the whole week — not just the regenerated part. (Decision 025.)
+        for (ShiftAssignment sa : lockedAssignments) {
+            if (sa.getBreakStart() != null) breaksThisWeek.merge(sa.getEmployeeId(), 1, Integer::sum);
+        }
 
         List<ValidationMessage> messages = new ArrayList<>();
 
@@ -207,17 +212,31 @@ public class ScheduleEngine {
             }
         }
 
+        // Programmatic folgas for the weekend workers, applied to the regenerated (future)
+        // days. The crew is whoever ended up on Sat/Sun — the locked past crew or a newly
+        // assigned one. Folgas that fall on locked past days are already reflected there;
+        // Phase 2 only processes future days, so only the future folgas are applied. (Decision 025.)
+        Set<Long> weekendWorkerIds = daysByDate.entrySet().stream()
+                .filter(e -> e.getKey().equals(saturday) || e.getKey().equals(sunday))
+                .flatMap(e -> e.getValue().getAssignments().stream())
+                .map(SlotAssignment::getEmployeeId)
+                .collect(Collectors.toSet());
+        List<Employee> folgaWorkers = employees.stream()
+                .filter(emp -> weekendWorkerIds.contains(emp.getId()))
+                .sorted(Comparator.comparingLong(Employee::getId))
+                .toList();
+        Map<LocalDate, Set<Long>> programmaticFolgas = computeFolgaDays(folgaWorkers, monday, holidays);
+
         // Phase 2: normal weekdays from today (Mon–Sat, not already assigned, not holidays)
         for (LocalDate date = fillFrom; !date.isAfter(saturday); date = date.plusDays(1)) {
             if (daysByDate.containsKey(date)) continue;
             if (holidays.contains(date)) continue;
             DayType dayType = date.getDayOfWeek() == DayOfWeek.SATURDAY ? DayType.SATURDAY : DayType.WEEKDAY;
-            Set<Long> absent = absentEmployeesOn(absences, date);
-            // Replan does not recompute weekend rotation / programmatic folgas (pre-existing
-            // limitation), so it has no weekend-worker set to anchor on — pass empty.
+            Set<Long> absent = new HashSet<>(absentEmployeesOn(absences, date));
+            absent.addAll(programmaticFolgas.getOrDefault(date, Set.of()));
             DayPlan plan = weekdayFiller.fillWeekday(
                     date, dayType, employees, absent, accumulator,
-                    slotOwnerForWeek, hadBreakShiftLastWeek, Set.of(), breaksThisWeek, messages);
+                    slotOwnerForWeek, hadBreakShiftLastWeek, weekendWorkerIds, breaksThisWeek, messages);
             daysByDate.put(date, plan);
         }
 
@@ -237,9 +256,6 @@ public class ScheduleEngine {
         return new WeekResult(isoYear, isoWeek, allDays, messages, accumulator.getAllWeeklyHours());
     }
 
-    /**
-     * Computes which employees had a break shift in the ISO week immediately preceding {@code monday}.
-     */
     /** Last Saturday each employee worked: was it the morning (Pair A) side? Drives A<->B alternation. */
     private Map<Long, Boolean> computeLastWeekendPattern(List<ShiftAssignment> prior) {
         Map<Long, ShiftAssignment> lastSat = new HashMap<>();

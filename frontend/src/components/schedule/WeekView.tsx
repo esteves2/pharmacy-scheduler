@@ -105,7 +105,10 @@ function AssignmentCell({ assignment, absence, editable, onClick }: AssignmentCe
         onClick={editable ? onClick : undefined}>
       <div className="text-xs font-medium text-gray-800">{assignment.startTime}–{assignment.endTime}</div>
       {assignment.breakStart && (
-        <div className="text-xs text-gray-400">{assignment.breakStart}–{assignment.breakEnd}</div>
+        <div className="text-xs text-amber-700 bg-amber-50 rounded px-1 inline-block my-0.5"
+             title="Pausa de almoço">
+          {assignment.breakStart}–{assignment.breakEnd}
+        </div>
       )}
       <div className="text-xs text-gray-400">{assignment.hours.toFixed(1)}h</div>
     </td>

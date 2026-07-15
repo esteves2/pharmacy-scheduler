@@ -106,7 +106,7 @@ class ScheduleEngineTest {
                 char pattern = s.getStartTime().getHour() < 12 ? 'A' : 'B';   // Sat morning=A, evening=B
                 patterns.computeIfAbsent(s.getEmployeeId(), k -> new ArrayList<>()).add(pattern);
             }
-            history.addAll(toHistory(r));
+            history.addAll(toHistory(r.getDays()));
         }
 
         // Fairness: over 8 weekends the load is spread across essentially everyone, F and T
@@ -127,11 +127,31 @@ class ScheduleEngineTest {
         });
     }
 
+    @Test
+    void replan_midWeek_keepsCoverageAndFolgas_noOvertime() {
+        LocalDate monday = LocalDate.of(2026, 6, 8);
+        // Generate the full week, treat Mon+Tue as already worked (locked), then replan from
+        // Wednesday — as if something changed mid-week. Folgas must still apply so no weekend
+        // worker is pushed over 40h on the regenerated days (the gap decision 025 closed).
+        WeekResult full = generate(monday, Set.of(), List.of(), Map.of(), Map.of());
+        LocalDate wednesday = monday.plusDays(2);
+        List<ShiftAssignment> locked = toHistory(full.getDays().stream()
+                .filter(d -> d.getDate().isBefore(wednesday))
+                .collect(Collectors.toList()));
+
+        WeekResult r = engine.replan(2026, isoWeek(monday), monday, wednesday, staff(), List.of(),
+                Set.of(), List.of(), Map.of(), Map.of(), locked);
+
+        assertNobodyOverForty(r);
+        assertPharmacistEveryOpenHour(r);
+        assertAtMostTwoBreaks(r);
+    }
+
     // ---------------------------------------------------------------- invariant helpers
 
     private void assertNoErrors(WeekResult r) {
         assertTrue(r.getErrors().isEmpty(), () -> "unexpected validation ERRORs: "
-                + r.getErrors().stream().map(ValidationMessage::getMessage).collect(Collectors.toList()));
+                + r.getErrors().stream().map(ValidationMessage::getMessage).toList());
     }
 
     private void assertNobodyOverForty(WeekResult r) {
@@ -178,10 +198,10 @@ class ScheduleEngineTest {
                 .orElseThrow(() -> new AssertionError("no day plan for " + date));
     }
 
-    /** Turn a generated week into ShiftAssignment history rows, as ScheduleService persists them. */
-    private List<ShiftAssignment> toHistory(WeekResult r) {
+    /** Turn day plans into ShiftAssignment history rows, as ScheduleService persists them. */
+    private List<ShiftAssignment> toHistory(List<DayPlan> days) {
         List<ShiftAssignment> out = new ArrayList<>();
-        for (DayPlan d : r.getDays()) {
+        for (DayPlan d : days) {
             for (SlotAssignment s : d.getAssignments()) {
                 ShiftAssignment sa = new ShiftAssignment();
                 sa.setEmployeeId(s.getEmployeeId());
